@@ -1,6 +1,7 @@
 """
 SimpleNote to Obsidian Importer
 Main script for converting SimpleNote exports to Obsidian vault format
+Phase 2: Enhanced with editor pipeline and configuration support
 """
 
 import sys
@@ -11,12 +12,14 @@ from typing import Optional
 from metadata_parser import MetadataParser
 from content_processor import ContentProcessor  
 from obsidian_formatter import ObsidianFormatter
+from editor_pipeline import EditorPipeline
+from config import ImportConfig, ConfigManager
 
 
 class SimpleNoteImporter:
     """Main importer class that orchestrates the conversion process"""
     
-    def __init__(self, notes_directory: Path, json_path: Optional[Path] = None, output_directory: Optional[Path] = None):
+    def __init__(self, notes_directory: Path, json_path: Optional[Path] = None, output_directory: Optional[Path] = None, config: Optional[ImportConfig] = None):
         """
         Initialize the importer
         
@@ -24,15 +27,22 @@ class SimpleNoteImporter:
             notes_directory: Directory containing .txt note files
             json_path: Path to notes.json file (optional)
             output_directory: Output directory for Obsidian notes
+            config: Import configuration (Phase 2)
         """
         self.notes_directory = Path(notes_directory)
         self.json_path = Path(json_path) if json_path else None
         self.output_directory = Path(output_directory) if output_directory else self.notes_directory / "obsidian_vault"
+        self.config = config or ImportConfig()
         
         # Initialize processors
         self.content_processor = ContentProcessor(self.notes_directory)
         self.obsidian_formatter = ObsidianFormatter(self.output_directory)
         self.metadata_parser = MetadataParser(self.json_path) if self.json_path else None
+        
+        # Initialize Phase 2 components
+        self.editor_pipeline = None
+        if self.config.enable_editor_pipeline:
+            self.editor_pipeline = self._setup_editor_pipeline()
         
     def run(self) -> bool:
         """
@@ -68,8 +78,41 @@ class SimpleNoteImporter:
                 print("No notes found to process!")
                 return False
             
-            # Step 3: Format and save to Obsidian
-            print("Step 3: Formatting and saving notes for Obsidian...")
+            # Step 3: Apply editor pipeline (Phase 2)
+            if self.editor_pipeline:
+                print("Step 3: Applying editor pipeline transformations...")
+                processed_notes = []
+                for note in notes:
+                    original_filename = note.get('filename', '')
+                    original_metadata = metadata_map.get(original_filename, {})
+                    
+                    # Create processing context
+                    context = {
+                        'filename': original_filename,
+                        'original_path': note.get('original_path'),
+                        'phase': 2
+                    }
+                    
+                    # Apply pipeline
+                    processed_content, processed_metadata = self.editor_pipeline.process(
+                        note['content'], original_metadata, context
+                    )
+                    
+                    # Update note with processed content
+                    processed_note = note.copy()
+                    processed_note['content'] = processed_content
+                    processed_notes.append(processed_note)
+                    
+                    # Update metadata map
+                    metadata_map[original_filename] = processed_metadata
+                
+                notes = processed_notes
+                print(f"Processed {len(notes)} notes through editor pipeline")
+                print()
+            
+            # Step 4: Format and save to Obsidian
+            step_num = 4 if self.editor_pipeline else 3
+            print(f"Step {step_num}: Formatting and saving notes for Obsidian...")
             saved_files = self.obsidian_formatter.save_all_notes(notes, metadata_map)
             print(f"Successfully saved {len(saved_files)} notes")
             print()
@@ -96,23 +139,59 @@ class SimpleNoteImporter:
             print(f"Warning: {len(notes) - len(saved_files)} notes failed to save")
             
         print("\nImport completed!")
+    
+    def _setup_editor_pipeline(self) -> EditorPipeline:
+        """Setup editor pipeline with configured processors"""
+        from editor_pipeline import EditorPipeline, TagInjector, FolderOrganizer, ContentTransformer
+        
+        pipeline = EditorPipeline()
+        
+        # Add processors based on configuration
+        if self.config.enable_auto_tagging:
+            tag_injector = TagInjector()
+            # Apply custom tag rules if configured
+            if self.config.custom_tag_rules:
+                tag_injector.tag_rules.update(self.config.custom_tag_rules)
+            pipeline.add_processor(tag_injector)
+        
+        if self.config.enable_folder_organization:
+            folder_organizer = FolderOrganizer()
+            # Apply custom folder rules if configured
+            if self.config.custom_folder_rules:
+                folder_organizer.organization_rules.update(self.config.custom_folder_rules)
+            pipeline.add_processor(folder_organizer)
+        
+        if self.config.enable_content_transformation:
+            content_transformer = ContentTransformer()
+            # Apply custom transformations if configured
+            if self.config.custom_transformations:
+                content_transformer.transformation_rules.update(self.config.custom_transformations)
+            pipeline.add_processor(content_transformer)
+        
+        return pipeline
 
 
 def main():
     """Command line interface"""
     parser = argparse.ArgumentParser(
-        description="Convert SimpleNote export to Obsidian vault format",
+        description="Convert SimpleNote export to Obsidian vault format with smart processing",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
   # Basic import from current directory
   python simplenote_importer.py
 
-  # Import with custom paths
+  # Import with custom paths  
   python simplenote_importer.py --notes /path/to/notes --output /path/to/vault
 
-  # Import with metadata
-  python simplenote_importer.py --notes /path/to/notes --json /path/to/source/notes.json
+  # Import with metadata and smart processing
+  python simplenote_importer.py --notes /path/to/notes --json /path/to/source/notes.json --smart
+
+  # Import with configuration preset
+  python simplenote_importer.py --preset organized
+
+  # Import with custom config file
+  python simplenote_importer.py --config config/my_settings.yaml
         """
     )
     
@@ -135,7 +214,65 @@ Examples:
         help='Output directory for Obsidian vault (default: notes_dir/obsidian_vault)'
     )
     
+    # Smart processing options
+    parser.add_argument(
+        '--smart',
+        action='store_true',
+        help='Enable smart processing (auto-tagging, folder organization, content transformation)'
+    )
+    
+    parser.add_argument(
+        '--preset',
+        choices=['minimal', 'basic', 'organized', 'full'],
+        help='Use a configuration preset (minimal, basic, organized, full)'
+    )
+    
+    parser.add_argument(
+        '--config',
+        type=Path,
+        help='Path to configuration file (YAML or JSON)'
+    )
+    
+    parser.add_argument(
+        '--create-sample-config',
+        action='store_true',
+        help='Create a sample configuration file and exit'
+    )
+    
     args = parser.parse_args()
+    
+    # Handle sample config creation
+    if args.create_sample_config:
+        config_manager = ConfigManager()
+        config_manager.create_sample_config()
+        return
+    
+    # Setup configuration
+    config = None
+    
+    if args.preset:
+        config = ImportConfig().get_phase2_preset(args.preset)
+        print(f"Using configuration preset: {args.preset}")
+    elif args.config:
+        if not args.config.exists():
+            print(f"Error: Configuration file does not exist: {args.config}")
+            sys.exit(1)
+        config = ImportConfig.load_from_file(args.config)
+        print(f"Using configuration file: {args.config}")
+    elif args.smart:
+        config = ImportConfig()  # Default smart processing config
+        print("Using default smart processing configuration")
+    else:
+        # Phase 1 compatibility mode
+        config = ImportConfig().get_phase2_preset('minimal')
+        print("Using Phase 1 compatibility mode")
+    
+    # Validate configuration
+    if config:
+        config_manager = ConfigManager()
+        warnings = config_manager.validate_config(config)
+        for warning in warnings:
+            print(f"Configuration warning: {warning}")
     
     # Validate inputs
     if not args.notes.exists():
@@ -150,7 +287,8 @@ Examples:
     importer = SimpleNoteImporter(
         notes_directory=args.notes,
         json_path=args.json,
-        output_directory=args.output
+        output_directory=args.output,
+        config=config
     )
     
     success = importer.run()

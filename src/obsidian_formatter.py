@@ -1,6 +1,7 @@
 """
 Obsidian Formatter
 Formats notes for Obsidian with YAML frontmatter and proper markdown structure
+Phase 2: Enhanced with folder organization support
 """
 
 import yaml
@@ -102,6 +103,7 @@ class ObsidianFormatter:
     def save_note(self, note_data: Dict[str, Any], metadata: Optional[Dict[str, Any]] = None) -> Path:
         """
         Format and save a note to the output directory
+        Phase 2: Enhanced with folder organization support
         
         Args:
             note_data: Note content and info
@@ -113,12 +115,20 @@ class ObsidianFormatter:
         formatted_content = self.format_note(note_data, metadata)
         filename = self.generate_filename(note_data)
         
+        # Determine output directory (Phase 2: folder organization)
+        folder_path = metadata.get('_folder_path', '') if metadata else ''
+        if folder_path:
+            output_dir = self.output_directory / folder_path
+            output_dir.mkdir(parents=True, exist_ok=True)
+        else:
+            output_dir = self.output_directory
+        
         # Handle filename conflicts
-        output_path = self.output_directory / filename
+        output_path = output_dir / filename
         counter = 1
         while output_path.exists():
             name_part = filename.rsplit('.md', 1)[0]
-            output_path = self.output_directory / f"{name_part}_{counter}.md"
+            output_path = output_dir / f"{name_part}_{counter}.md"
             counter += 1
             
         # Write the file

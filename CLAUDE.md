@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a SimpleNote to Obsidian importer - a Python tool for converting SimpleNote exports to Obsidian-compatible markdown files with YAML frontmatter. Currently at Phase 1 implementation (basic 1:1 conversion complete), with architecture designed for future phases including advanced content processing and organization.
+This is a SimpleNote to Obsidian importer - a Python tool for converting SimpleNote exports to Obsidian-compatible markdown files with YAML frontmatter. Currently at Phase 2 implementation (enhanced processing complete) with auto-tagging, folder organization, and content transformation features. Architecture designed for Phase 3 advanced features.
 
 ## Development Commands
 
@@ -28,8 +28,17 @@ python import.py --notes path/to/notes --json path/to/source/notes.json --output
 # Help and options
 python import.py --help
 
-# Direct execution via venv
-obsidian-porter/Scripts/python import.py --notes simpleNotes-notes --json simpleNotes-notes/source/notes.json --output output/test
+# Smart processing with organized preset
+obsidian-porter/Scripts/python import.py --preset organized --notes data --json data/source/notes.json --output output/organized
+
+# Smart processing with custom config
+obsidian-porter/Scripts/python import.py --config config/my_settings.yaml --notes data --json data/source/notes.json
+
+# Smart processing with default settings
+obsidian-porter/Scripts/python import.py --smart --notes data --json data/source/notes.json
+
+# Create sample configuration
+obsidian-porter/Scripts/python import.py --create-sample-config
 ```
 
 ### Dependencies
@@ -43,17 +52,23 @@ pip install -r requirements.txt
 ## Architecture Overview
 
 ### Core Processing Pipeline
-The importer follows a 3-step pipeline orchestrated by `SimpleNoteImporter`:
+The importer follows a 4-step pipeline orchestrated by `SimpleNoteImporter`:
 
 1. **Metadata Parsing** (`MetadataParser`) - Extracts timestamps, tags, and metadata from `notes.json`
-2. **Content Processing** (`ContentProcessor`) - Reads and processes `.txt` files from SimpleNote export  
-3. **Obsidian Formatting** (`ObsidianFormatter`) - Generates markdown with YAML frontmatter
+2. **Content Processing** (`ContentProcessor`) - Reads and processes `.txt` files from SimpleNote export
+3. **Editor Pipeline** (`EditorPipeline`) - Phase 2: Auto-tagging, folder organization, content transformation
+4. **Obsidian Formatting** (`ObsidianFormatter`) - Generates markdown with YAML frontmatter and folder structure
 
 ### Component Interactions
-- `SimpleNoteImporter` orchestrates the entire process and handles CLI interface
+- `SimpleNoteImporter` orchestrates the entire process and handles CLI interface + configuration
 - `MetadataParser` creates filename-to-metadata mapping from JSON export
 - `ContentProcessor` handles file discovery and content extraction from .txt files
-- `ObsidianFormatter` combines content with metadata to create Obsidian-compatible files
+- `EditorPipeline` applies configurable content transformations (Phase 2)
+  - `TagInjector` - Pattern-based auto-tagging
+  - `FolderOrganizer` - Content-based folder assignment
+  - `ContentTransformer` - Whitespace and formatting cleanup
+- `ObsidianFormatter` combines content with metadata and creates organized folder structure
+- `ImportConfig` + `ConfigManager` - Configuration system with presets and validation
 
 ### Data Flow Architecture
 ```
@@ -105,5 +120,12 @@ The `MetadataParser._generate_filename()` method creates the same filename patte
 ### Error Handling
 The main importer provides comprehensive error handling with detailed progress reporting and summary statistics, including warnings for partial failures.
 
-### Phase 1 Status
-Phase 1 implementation is complete and tested with 129/129 notes successfully processed. The codebase is ready for Phase 2 enhancements following the planned architecture in `.agents/plans/simplenote-to-obsidian-import-plan.md`.
+### Phase 2 Status
+Phase 2 implementation is complete and tested with 129/129 notes successfully processed. Features include:
+- **Auto-tagging**: 890+ intelligent tags applied based on content patterns
+- **Folder Organization**: Notes automatically categorized into 20+ logical folders
+- **Content Transformation**: Standardized headers, cleaned whitespace, formatted lists
+- **Configuration System**: 4 presets (minimal, basic, organized, full) plus custom config support
+- **Backward Compatibility**: Phase 1 mode available via `minimal` preset
+
+The codebase is ready for Phase 3 enhancements (note splitting, link detection, advanced NLP features).

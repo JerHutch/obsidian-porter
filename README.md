@@ -2,36 +2,60 @@
 
 A Python tool for converting SimpleNote exports to Obsidian-compatible markdown files with YAML frontmatter.
 
-## Phase 1 Implementation Status: ✅ COMPLETE
+## Phase 2 Implementation Status: ✅ COMPLETE
 
-Successfully implemented basic 1:1 conversion with:
-- YAML frontmatter with metadata
-- Proper markdown formatting 
-- Timestamp preservation from JSON
-- Tag support
-- Original ID tracking
-- Clean filename sanitization
+Successfully implemented enhanced processing with:
+- **Phase 1 features**: YAML frontmatter, metadata, timestamps, filename sanitization
+- **Editor Pipeline Framework**: Extensible content processing system
+- **Auto-tagging**: Content and filename pattern-based tag injection  
+- **Folder Organization**: Smart categorization by content type
+- **Content Transformation**: Whitespace cleanup and formatting standardization
+- **Configuration System**: Flexible presets and custom rule support
 
 ## Features
 
+### Core Processing
 - **Metadata Parsing**: Extracts timestamps, tags, and other metadata from `notes.json`
 - **Content Processing**: Reads and processes `.txt` files from SimpleNote export
 - **YAML Frontmatter**: Adds comprehensive metadata to each note
 - **Filename Sanitization**: Converts titles to Obsidian-compatible filenames
-- **Extensible Architecture**: Built with editor pipeline framework for future enhancements
+
+### Phase 2 Enhancements
+- **Auto-Tagging**: Intelligent tagging based on content analysis and filename patterns
+- **Folder Organization**: Automatic categorization into logical folder structures  
+- **Content Transformation**: Whitespace cleanup, header standardization, list formatting
+- **Configuration Presets**: Ready-to-use configurations (minimal, basic, organized, full)
+- **Custom Rules**: Flexible pattern-based tagging and organization rules
+- **Editor Pipeline**: Extensible framework for content processing modules
 
 ## Usage
 
 ### Basic Usage
 ```bash
-# Import from current directory
-python import.py
+# Phase 1 compatibility - Basic import
+python import.py --notes data --json data/source/notes.json
 
-# Import with custom paths
-python import.py --notes path/to/notes --output path/to/vault
+# Smart processing with default settings
+python import.py --notes data --json data/source/notes.json --smart
 
-# Import with metadata
-python import.py --notes path/to/notes --json path/to/source/notes.json --output output/vault
+# Smart processing with presets
+python import.py --preset organized --notes data --json data/source/notes.json 
+python import.py --preset full --notes data --json data/source/notes.json
+```
+
+### Smart Processing Configuration Presets
+- **`minimal`**: Basic import mode, no smart processing
+- **`basic`**: Auto-tagging and content transformation only
+- **`organized`**: Full smart processing with folder organization
+- **`full`**: All features including index files and backlinks
+
+### Custom Configuration
+```bash
+# Create a sample configuration file
+python import.py --create-sample-config
+
+# Use custom configuration
+python import.py --config config/my_settings.yaml --notes data --json data/source/notes.json
 ```
 
 ### Virtual Environment Setup
@@ -79,34 +103,37 @@ pinned: false
 
 ## Test Results
 
-**Successfully processed:** 129/129 notes ✅
+### Phase 2 Results ✅
+**Successfully processed:** 129/129 notes with enhanced features
+- **Smart Organization**: Auto-categorized into 20+ folders (cocktails, gaming, music, recipes, etc.)
+- **Enhanced Tagging**: 890+ intelligent tags applied based on content analysis
+- **Content Transformation**: Headers standardized, whitespace cleaned, lists formatted
+- **Metadata Preservation**: All timestamps, original IDs, and SimpleNote tags maintained
+- **Folder Structure**: Logical hierarchy (recipes/fermentation, music/electronic, etc.)
+
+### Phase 1 Baseline ✅  
 - All `.txt` files converted to `.md` format
 - Metadata matched and applied from JSON (262 notes in JSON, 129 .txt files)
 - YAML frontmatter correctly generated
 - Filenames sanitized for Obsidian compatibility
-- Content preserved exactly as-is
 
-## Future Enhancements (Phases 2-3)
+## Future Enhancements (Phase 3)
 
-The codebase is designed for extensibility:
+Building on the completed Phase 2 foundation:
 
-### Phase 2 - Enhanced Processing
-- Editor pipeline framework implementation
-- Auto-tagging based on content/filename patterns
-- Folder organization system
-- Content transformations
-
-### Phase 3 - Advanced Features
-- Note splitting capabilities
-- Link detection and creation
-- Content-based categorization
-- Custom transformation rules
+### Phase 3 - Advanced Features (Planned)
+- **Note Splitting**: Break large notes into smaller ones based on headers
+- **Link Detection**: Convert references to other notes into Obsidian links
+- **Content Analysis**: Advanced categorization using NLP techniques
+- **Batch Operations**: Apply transformations to existing Obsidian vaults
+- **Custom Processors**: Plugin system for user-defined content transformations
+- **Index Generation**: Automatic creation of MOCs (Maps of Content)
 
 ## Dependencies
 
 - Python 3.13+
-- PyYAML 6.0.2
-- python-dateutil 2.9.0
+- PyYAML 6.0.2 (YAML configuration and frontmatter)
+- python-dateutil 2.9.0 (timestamp parsing)
 
 ## License
 
