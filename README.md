@@ -68,6 +68,48 @@ obsidian-porter\Scripts\activate
 obsidian-porter/Scripts/python import.py --help
 ```
 
+## Testing
+
+### Running Tests
+
+The project includes a comprehensive test suite with 98+ tests covering unit testing and integration testing.
+
+```bash
+# Install test dependencies (if not already installed)
+obsidian-porter/Scripts/pip install -r requirements-test.txt
+
+# Run all tests
+obsidian-porter/Scripts/python -m pytest
+
+# Run tests with coverage report
+obsidian-porter/Scripts/python -m pytest --cov=src --cov-report=html
+
+# Run specific test categories
+obsidian-porter/Scripts/python -m pytest tests/unit/          # Unit tests only
+obsidian-porter/Scripts/python -m pytest tests/integration/  # Integration tests only
+
+# Run tests in verbose mode
+obsidian-porter/Scripts/python -m pytest -v
+
+# Run tests and stop on first failure
+obsidian-porter/Scripts/python -m pytest -x
+```
+
+### Test Coverage
+
+- **Unit Tests**: Individual component testing (MetadataParser, ContentProcessor, ObsidianFormatter, Configuration)
+- **Integration Tests**: Full pipeline testing with various configurations and error scenarios
+- **Sample Data**: Comprehensive synthetic test data covering edge cases
+- **Performance Testing**: Large dataset handling (100+ notes)
+
+### Test Guidelines
+
+- Always write tests for new features and bug fixes
+- Update tests when refactoring existing code
+- Use dependency injection for better testability
+- Maintain >90% test coverage on core business logic
+- Keep tests fast and deterministic
+
 ## Project Structure
 
 ```
@@ -77,11 +119,19 @@ obsidian-porter/Scripts/python import.py --help
 │   ├── simplenote_importer.py    # Main importer script
 │   ├── metadata_parser.py        # JSON metadata parser
 │   ├── content_processor.py      # .txt file processor
-│   └── obsidian_formatter.py     # Obsidian formatting
-├── output/                   # Generated Obsidian vaults
-├── tests/                    # Test files (for future use)
-├── import.py                 # Entry point script
-└── requirements.txt          # Python dependencies
+│   ├── obsidian_formatter.py     # Obsidian formatting
+│   ├── config.py                 # Configuration system
+│   ├── editor_pipeline.py        # Content processing pipeline
+│   └── pipelines/                # Individual processors
+├── tests/                        # Comprehensive test suite
+│   ├── fixtures/                 # Test data
+│   ├── unit/                     # Unit tests
+│   └── integration/              # Integration tests
+├── .agents/                      # Planning documents
+├── output/                       # Generated Obsidian vaults
+├── import.py                     # Entry point script
+├── requirements.txt              # Runtime dependencies
+└── requirements-test.txt         # Testing dependencies
 ```
 
 ## YAML Frontmatter Format

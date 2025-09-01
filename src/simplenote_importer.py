@@ -9,11 +9,11 @@ import argparse
 from pathlib import Path
 from typing import Optional
 
-from metadata_parser import MetadataParser
-from content_processor import ContentProcessor  
-from obsidian_formatter import ObsidianFormatter
-from editor_pipeline import EditorPipeline
-from config import ImportConfig, ConfigManager
+from .metadata_parser import MetadataParser
+from .content_processor import ContentProcessor  
+from .obsidian_formatter import ObsidianFormatter
+from .editor_pipeline import EditorPipeline
+from .config import ImportConfig, ConfigManager
 
 
 class SimpleNoteImporter:

@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(obsidian-porter/Scripts/python -m pytest tests/unit/ -v)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

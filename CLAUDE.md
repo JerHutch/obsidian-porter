@@ -8,6 +8,19 @@ This is a SimpleNote to Obsidian importer - a Python tool for converting SimpleN
 
 ## Development Commands
 
+### Git Workflow
+```bash
+# Before starting work on any task, create a new branch
+git checkout -b feature/task-description
+git checkout -b fix/issue-description
+git checkout -b enhancement/feature-name
+
+# Examples:
+git checkout -b feature/phase3-note-splitting
+git checkout -b fix/metadata-parsing-bug
+git checkout -b enhancement/advanced-tagging
+```
+
 ### Environment Setup
 ```bash
 # Use pre-configured virtual environment
@@ -48,6 +61,39 @@ pip install -r requirements.txt
 
 # Key dependencies: PyYAML==6.0.2, python-dateutil==2.9.0.post0
 ```
+
+### Testing
+```bash
+# Run all tests
+obsidian-porter/Scripts/python -m pytest
+
+# Run tests with coverage
+obsidian-porter/Scripts/python -m pytest --cov=src --cov-report=html
+
+# Run specific test categories
+obsidian-porter/Scripts/python -m pytest tests/unit/
+obsidian-porter/Scripts/python -m pytest tests/integration/
+
+# Run tests in verbose mode
+obsidian-porter/Scripts/python -m pytest -v
+
+# Run tests and stop on first failure
+obsidian-porter/Scripts/python -m pytest -x
+```
+
+#### Testing Guidelines
+- **Always write tests** for new features and bug fixes
+- **Update tests** when refactoring existing code
+- **Use dependency injection** when creating classes to make them easier to test:
+  - Accept file system interfaces instead of direct file operations
+  - Pass configuration objects as parameters rather than loading internally
+  - Inject external dependencies (parsers, formatters, etc.) through constructor
+  - Return structured data that can be verified independently
+- **Create unit tests** for individual components and methods
+- **Create integration tests** for complete workflows and user scenarios
+- **Use synthetic test data** - never commit real user notes or sensitive data
+- **Aim for >90% test coverage** on core business logic
+- **Keep tests fast and deterministic** - no external dependencies or random data
 
 ## Architecture Overview
 

@@ -1,0 +1,27 @@
+{
+  "activeNotes": [
+    {
+      "id": "test-id-001",
+      "content": "My First Test Note\n\nThis is a simple note with basic text content.\nNo special formatting or complex features.\nJust plain text for testing basic functionality.",
+      "creationDate": "2024-01-01T10:00:00.000Z",
+      "lastModified": "2024-01-01T10:30:00.000Z",
+      "tags": [],
+      "systemTags": [],
+      "markdown": false,
+      "pinned": false,
+      "deleted": false
+    },
+    {
+      "id": "test-id-002", 
+      "content": "Empty Note Title\n",
+      "creationDate": "2024-01-02T09:15:00.000Z",
+      "lastModified": "2024-01-02T09:15:00.000Z",
+      "tags": [],
+      "systemTags": [],
+      "markdown": false,
+      "pinned": false,
+      "deleted": false
+    }
+  ],
+  "trashedNotes": []
+}

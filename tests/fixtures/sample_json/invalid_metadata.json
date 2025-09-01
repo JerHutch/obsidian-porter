@@ -1,0 +1,22 @@
+{
+  "activeNotes": [
+    {
+      "id": "test-id-invalid-001",
+      "content": "Note with invalid date format",
+      "creationDate": "invalid-date-string",
+      "lastModified": "2024-01-01",
+      "tags": ["invalid"],
+      "systemTags": [],
+      "markdown": false,
+      "pinned": false,
+      "deleted": false
+    },
+    {
+      "id": "test-id-invalid-002",
+      "content": "Note with missing required fields",
+      "tags": ["missing-fields"],
+      "systemTags": []
+    }
+  ],
+  "trashedNotes": "this should be an array"
+}

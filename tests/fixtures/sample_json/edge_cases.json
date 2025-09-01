@@ -1,0 +1,50 @@
+{
+  "activeNotes": [
+    {
+      "id": "test-id-edge-001",
+      "content": "",
+      "creationDate": "2024-01-01T00:00:00.000Z",
+      "lastModified": "2024-01-01T00:00:00.000Z",
+      "tags": [],
+      "systemTags": [],
+      "markdown": false,
+      "pinned": false,
+      "deleted": false
+    },
+    {
+      "id": "test-id-edge-002",
+      "content": "Note with null tags",
+      "creationDate": "2024-01-01T12:00:00.000Z",
+      "lastModified": "2024-01-01T12:00:00.000Z",
+      "tags": null,
+      "systemTags": null,
+      "markdown": false,
+      "pinned": false,
+      "deleted": false
+    },
+    {
+      "id": "test-id-edge-003",
+      "content": "Very/Long\\File*Name|With:Special?Characters\"And<Symbols>That.Might[Cause]Problems{In}File+Systems=Or&Other%Processing@Steps!",
+      "creationDate": "2024-12-31T23:59:59.999Z",
+      "lastModified": "2024-12-31T23:59:59.999Z",
+      "tags": ["very-long-tag-name-that-exceeds-normal-length-expectations-and-might-cause-issues"],
+      "systemTags": ["markdown"],
+      "markdown": true,
+      "pinned": true,
+      "deleted": false
+    }
+  ],
+  "trashedNotes": [
+    {
+      "id": "test-id-deleted-001",
+      "content": "This note was deleted",
+      "creationDate": "2024-01-01T10:00:00.000Z",
+      "lastModified": "2024-01-01T11:00:00.000Z",
+      "tags": ["deleted"],
+      "systemTags": [],
+      "markdown": false,
+      "pinned": false,
+      "deleted": true
+    }
+  ]
+}
