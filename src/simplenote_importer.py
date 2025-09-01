@@ -78,10 +78,12 @@ class SimpleNoteImporter:
                 print("No notes found to process!")
                 return False
             
-            # Step 3: Apply editor pipeline (Phase 2)
+            # Step 3: Apply editor pipeline (Phase 2+3)
             if self.editor_pipeline:
                 print("Step 3: Applying editor pipeline transformations...")
                 processed_notes = []
+                total_split_notes = 0
+                
                 for note in notes:
                     original_filename = note.get('filename', '')
                     original_metadata = metadata_map.get(original_filename, {})
@@ -90,7 +92,7 @@ class SimpleNoteImporter:
                     context = {
                         'filename': original_filename,
                         'original_path': note.get('original_path'),
-                        'phase': 2
+                        'phase': 3 if self.config.enable_note_splitting else 2
                     }
                     
                     # Apply pipeline
@@ -105,9 +107,38 @@ class SimpleNoteImporter:
                     
                     # Update metadata map
                     metadata_map[original_filename] = processed_metadata
+                    
+                    # Handle note splitting (Phase 3)
+                    if self.config.enable_note_splitting:
+                        note_splitter = self.editor_pipeline.get_note_splitter()
+                        if note_splitter:
+                            split_notes = note_splitter.get_split_notes()
+                            if len(split_notes) > 1:  # Note was split
+                                # Remove the original processed note (we'll use split versions)
+                                processed_notes.pop()
+                                
+                                # Add all split notes
+                                for i, split_note in enumerate(split_notes):
+                                    split_filename = split_note['filename']
+                                    split_content = split_note['content']
+                                    split_metadata = split_note['metadata']
+                                    
+                                    # Create note object for split note
+                                    new_note = note.copy()
+                                    new_note['filename'] = split_filename
+                                    new_note['content'] = split_content
+                                    processed_notes.append(new_note)
+                                    
+                                    # Add to metadata map
+                                    metadata_map[split_filename] = split_metadata
+                                
+                                total_split_notes += len(split_notes) - 1  # -1 because we replaced the original
                 
                 notes = processed_notes
-                print(f"Processed {len(notes)} notes through editor pipeline")
+                if self.config.enable_note_splitting and total_split_notes > 0:
+                    print(f"Processed {len(notes)} notes through editor pipeline (split {total_split_notes} additional notes)")
+                else:
+                    print(f"Processed {len(notes)} notes through editor pipeline")
                 print()
             
             # Step 4: Format and save to Obsidian
@@ -142,16 +173,16 @@ class SimpleNoteImporter:
     
     def _setup_editor_pipeline(self) -> EditorPipeline:
         """Setup editor pipeline with configured processors"""
-        from editor_pipeline import EditorPipeline, TagInjector, FolderOrganizer, ContentTransformer
+        from editor_pipeline import EditorPipeline
+        from pipelines import TagInjector, FolderOrganizer, ContentTransformer, NoteSplitter
         
         pipeline = EditorPipeline()
         
         # Add processors based on configuration
         if self.config.enable_auto_tagging:
-            tag_injector = TagInjector()
-            # Apply custom tag rules if configured
-            if self.config.custom_tag_rules:
-                tag_injector.tag_rules.update(self.config.custom_tag_rules)
+            # Pass custom tag rules if configured, otherwise empty dict
+            tag_rules = self.config.custom_tag_rules if self.config.custom_tag_rules else {}
+            tag_injector = TagInjector(tag_rules=tag_rules)
             pipeline.add_processor(tag_injector)
         
         if self.config.enable_folder_organization:
@@ -167,6 +198,20 @@ class SimpleNoteImporter:
             if self.config.custom_transformations:
                 content_transformer.transformation_rules.update(self.config.custom_transformations)
             pipeline.add_processor(content_transformer)
+        
+        # Add note splitting processor (Phase 3) - only for cocktails and recipes
+        if self.config.enable_note_splitting:
+            split_config = {
+                'enable_note_splitting': True,
+                'split_header_level': self.config.split_header_level,
+                'preserve_main_header': self.config.preserve_main_header
+            }
+            # Configure to only split notes with specified tags
+            note_splitter = NoteSplitter(
+                split_config=split_config,
+                enabled_tags=self.config.split_enabled_tags  # Only split notes with these tags
+            )
+            pipeline.add_processor(note_splitter)
         
         return pipeline
 
@@ -223,8 +268,8 @@ Examples:
     
     parser.add_argument(
         '--preset',
-        choices=['minimal', 'basic', 'organized', 'full'],
-        help='Use a configuration preset (minimal, basic, organized, full)'
+        choices=['minimal', 'basic', 'organized', 'full', 'phase3'],
+        help='Use a configuration preset (minimal, basic, organized, full, phase3)'
     )
     
     parser.add_argument(

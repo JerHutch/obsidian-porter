@@ -20,6 +20,9 @@ class ImportConfig:
     enable_folder_organization: bool = True
     enable_content_transformation: bool = True
     
+    # Phase 3 Features
+    enable_note_splitting: bool = False
+    
     # Organization Settings
     organize_by_folder: bool = True
     folder_structure: str = "tags"  # "tags", "date", "custom", "flat"
@@ -44,6 +47,12 @@ class ImportConfig:
     custom_tag_rules: Dict[str, List[str]] = field(default_factory=dict)
     custom_folder_rules: Dict[str, str] = field(default_factory=dict)
     custom_transformations: Dict[str, str] = field(default_factory=dict)
+    
+    # Note Splitting Settings
+    split_header_level: int = 2  # Split on ## headers by default
+    preserve_main_header: bool = True  # Keep original file with first section
+    split_notes_patterns: List[str] = field(default_factory=list)  # Only split notes matching these patterns
+    split_enabled_tags: List[str] = field(default_factory=lambda: ['cocktails', 'recipes', 'drinks'])  # Only split notes with these tags
     
     @classmethod
     def load_from_file(cls, config_path: Path) -> 'ImportConfig':
@@ -120,6 +129,18 @@ class ImportConfig:
                 folder_structure="tags",
                 create_index_files=True,
                 create_backlinks=True
+            ),
+            
+            'phase3': ImportConfig(
+                enable_editor_pipeline=True,
+                enable_auto_tagging=True,
+                enable_folder_organization=True,
+                enable_content_transformation=True,
+                enable_note_splitting=True,
+                organize_by_folder=True,
+                folder_structure="tags",
+                split_header_level=2,
+                preserve_main_header=True
             )
         }
         
@@ -181,6 +202,13 @@ class ConfigManager:
             'clean_whitespace': True,
             'standardize_headers': True,
             'fix_list_formatting': True,
+            
+            '# Phase 3 Features - Note Splitting': None,
+            'enable_note_splitting': False,
+            'split_header_level': 2,  # Split on ## headers
+            'preserve_main_header': True,
+            'split_notes_patterns': [],  # Only split notes matching these patterns (empty = all)
+            'split_enabled_tags': ['cocktails', 'recipes', 'drinks'],  # Only split notes with these tags
             
             '# Output Settings': None,
             'output_format': 'obsidian',

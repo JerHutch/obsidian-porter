@@ -1,13 +1,18 @@
-# SimpleNote Importer Configuration
+# SimpleNote Importer Configuration - Phase 3 Test
 # Phase 2 Features
 enable_editor_pipeline: true
 enable_auto_tagging: true
 enable_folder_organization: true
 enable_content_transformation: true
+
+# Phase 3 Features
+enable_note_splitting: true
+
 # Organization Settings
 organize_by_folder: true
 folder_structure: tags
 create_index_files: false
+
 # Auto-tagging Rules (regex patterns -> tags)
 custom_tag_rules:
   tiki|cocktail|gin|rum|vodka|whiskey|tequila|brandy:
@@ -17,11 +22,12 @@ custom_tag_rules:
   - gaming
   music|song|album:
   - music
-  tracklist|essentail mix:
+  tracklist|essential mix:
   - music
   - mixes
   - tracklists
-# Folder Organization Rules (tag -> folder)
+
+# Folder Organization Rules (tag -> folder)  
 custom_folder_rules:
   gaming: games
   music: music
@@ -33,6 +39,12 @@ custom_folder_rules:
 clean_whitespace: true
 standardize_headers: true
 fix_list_formatting: true
+
+# Phase 3 Features - Note Splitting
+split_header_level: 2  # Split on ## headers
+preserve_main_header: true
+split_enabled_tags: [cocktails, recipes, drinks]  # Only split notes with these tags
+
 # Output Settings
 output_format: obsidian
 preserve_original_structure: false
