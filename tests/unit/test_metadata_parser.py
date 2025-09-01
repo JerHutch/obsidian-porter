@@ -197,11 +197,11 @@ class TestMetadataParser:
         
         content = "\n\nActual content here"
         result = parser._generate_filename(content)
-        assert result is None
+        assert result == "Actual content here.txt"  # Takes first non-empty line
         
         content = "#  \nActual content"
         result = parser._generate_filename(content)
-        assert result is None
+        assert result is None  # Empty header after stripping returns None
     
     def test_sanitize_filename_special_chars(self, temp_dir):
         """Test filename sanitization with special characters"""

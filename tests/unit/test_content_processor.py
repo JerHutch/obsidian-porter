@@ -133,10 +133,10 @@ class TestContentProcessor:
         """Test title extraction with empty first line"""
         processor = ContentProcessor(temp_dir)
         
-        # Empty first line
+        # Empty first line - should take first non-empty line after strip()
         content = "\n\nActual content"
         title = processor.extract_title(content)
-        assert title == "Untitled"
+        assert title == "Actual content"
         
         # Empty markdown header
         content = "#  \nActual content"

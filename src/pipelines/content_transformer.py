@@ -35,7 +35,7 @@ class ContentTransformer(ContentProcessor):
         
         # Apply transformation rules
         for pattern, replacement in self.transformation_rules.items():
-            transformed_content = re.sub(pattern, replacement, transformed_content)
+            transformed_content = re.sub(pattern, replacement, transformed_content, flags=re.MULTILINE)
         
         # Clean up extra whitespace
         transformed_content = self._clean_whitespace(transformed_content)

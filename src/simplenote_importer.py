@@ -176,8 +176,8 @@ class SimpleNoteImporter:
     
     def _setup_editor_pipeline(self) -> EditorPipeline:
         """Setup editor pipeline with configured processors"""
-        from editor_pipeline import EditorPipeline
-        from pipelines import TagInjector, FolderOrganizer, ContentTransformer, NoteSplitter
+        from .editor_pipeline import EditorPipeline
+        from .pipelines import TagInjector, FolderOrganizer, ContentTransformer, NoteSplitter
         
         pipeline = EditorPipeline()
         
