@@ -14,12 +14,13 @@ from .content_processor import ContentProcessor
 from .obsidian_formatter import ObsidianFormatter
 from .editor_pipeline import EditorPipeline
 from .config import ImportConfig, ConfigManager
+from .interfaces import FileSystemInterface, RealFileSystem
 
 
 class SimpleNoteImporter:
     """Main importer class that orchestrates the conversion process"""
     
-    def __init__(self, notes_directory: Path, json_path: Optional[Path] = None, output_directory: Optional[Path] = None, config: Optional[ImportConfig] = None):
+    def __init__(self, notes_directory: Path, json_path: Optional[Path] = None, output_directory: Optional[Path] = None, config: Optional[ImportConfig] = None, file_system: Optional[FileSystemInterface] = None):
         """
         Initialize the importer
         
@@ -28,16 +29,18 @@ class SimpleNoteImporter:
             json_path: Path to notes.json file (optional)
             output_directory: Output directory for Obsidian notes
             config: Import configuration (Phase 2)
+            file_system: File system interface for dependency injection (optional)
         """
         self.notes_directory = Path(notes_directory)
         self.json_path = Path(json_path) if json_path else None
         self.output_directory = Path(output_directory) if output_directory else self.notes_directory / "obsidian_vault"
         self.config = config or ImportConfig()
+        self.file_system = file_system or RealFileSystem()
         
-        # Initialize processors
-        self.content_processor = ContentProcessor(self.notes_directory)
-        self.obsidian_formatter = ObsidianFormatter(self.output_directory)
-        self.metadata_parser = MetadataParser(self.json_path) if self.json_path else None
+        # Initialize processors with dependency injection
+        self.content_processor = ContentProcessor(self.notes_directory, self.file_system)
+        self.obsidian_formatter = ObsidianFormatter(self.output_directory, self.file_system)
+        self.metadata_parser = MetadataParser(self.json_path, self.file_system) if self.json_path else None
         
         # Initialize Phase 2 components
         self.editor_pipeline = None

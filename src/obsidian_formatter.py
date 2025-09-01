@@ -9,13 +9,16 @@ from pathlib import Path
 from typing import Dict, Any, Optional
 from datetime import datetime
 
+from .interfaces import FileSystemInterface, RealFileSystem
+
 
 class ObsidianFormatter:
     """Formats notes for Obsidian vault with YAML frontmatter"""
     
-    def __init__(self, output_directory: Path):
+    def __init__(self, output_directory: Path, file_system: Optional[FileSystemInterface] = None):
         self.output_directory = Path(output_directory)
-        self.output_directory.mkdir(parents=True, exist_ok=True)
+        self.file_system = file_system or RealFileSystem()
+        self.file_system.mkdir(self.output_directory, parents=True, exist_ok=True)
         
     def format_note(self, note_data: Dict[str, Any], metadata: Optional[Dict[str, Any]] = None) -> str:
         """
@@ -119,21 +122,20 @@ class ObsidianFormatter:
         folder_path = metadata.get('_folder_path', '') if metadata else ''
         if folder_path:
             output_dir = self.output_directory / folder_path
-            output_dir.mkdir(parents=True, exist_ok=True)
+            self.file_system.mkdir(output_dir, parents=True, exist_ok=True)
         else:
             output_dir = self.output_directory
         
         # Handle filename conflicts
         output_path = output_dir / filename
         counter = 1
-        while output_path.exists():
+        while self.file_system.exists(output_path):
             name_part = filename.rsplit('.md', 1)[0]
             output_path = output_dir / f"{name_part}_{counter}.md"
             counter += 1
             
         # Write the file
-        with open(output_path, 'w', encoding='utf-8') as f:
-            f.write(formatted_content)
+        self.file_system.write_text(output_path, formatted_content)
             
         return output_path
     

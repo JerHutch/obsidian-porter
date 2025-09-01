@@ -6,19 +6,22 @@ Handles reading and basic processing of note content
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 
+from .interfaces import FileSystemInterface, RealFileSystem
+
 
 class ContentProcessor:
     """Processes SimpleNote .txt files for content extraction"""
     
-    def __init__(self, notes_directory: Path):
+    def __init__(self, notes_directory: Path, file_system: Optional[FileSystemInterface] = None):
         self.notes_directory = Path(notes_directory)
+        self.file_system = file_system or RealFileSystem()
         
     def get_txt_files(self) -> List[Path]:
         """Get all .txt files from the notes directory"""
-        if not self.notes_directory.exists():
+        if not self.file_system.exists(self.notes_directory):
             raise FileNotFoundError(f"Directory not found: {self.notes_directory}")
             
-        return list(self.notes_directory.glob("*.txt"))
+        return self.file_system.glob(self.notes_directory, "*.txt")
     
     def read_note_content(self, file_path: Path) -> Optional[str]:
         """
@@ -31,8 +34,7 @@ class ContentProcessor:
             Content as string, or None if error
         """
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                content = f.read()
+            content = self.file_system.read_text(file_path)
             return content.strip()
         except Exception as e:
             print(f"Error reading file {file_path}: {e}")

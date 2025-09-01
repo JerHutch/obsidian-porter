@@ -11,6 +11,7 @@ from unittest.mock import Mock
 import pytest
 
 from src.config import ImportConfig, ConfigManager
+from src.interfaces import MockFileSystem
 
 
 @pytest.fixture
@@ -116,6 +117,11 @@ def full_config():
 @pytest.fixture
 def mock_file_system():
     """Mock file system interface for testing."""
+    return MockFileSystem()
+
+@pytest.fixture
+def mock_file_system_legacy():
+    """Legacy mock file system interface for existing tests."""
     mock_fs = Mock()
     mock_fs.exists.return_value = True
     mock_fs.read_text.return_value = "Mock file content"
