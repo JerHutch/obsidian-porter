@@ -9,32 +9,7 @@ from typing import Dict, Any, List, Optional
 
 from src.simplenote_importer import SimpleNoteImporter
 from src.config import ImportConfig
-from src.interfaces.file_system import FileSystemInterface
-
-
-class MockFileSystem(FileSystemInterface):
-    """Mock file system for testing"""
-    
-    def __init__(self):
-        self.files = {}
-        self.directories = set()
-    
-    def read_file(self, path: Path) -> str:
-        return self.files.get(str(path), "")
-    
-    def write_file(self, path: Path, content: str) -> bool:
-        self.files[str(path)] = content
-        return True
-    
-    def exists(self, path: Path) -> bool:
-        return str(path) in self.files or str(path) in self.directories
-    
-    def create_directory(self, path: Path) -> bool:
-        self.directories.add(str(path))
-        return True
-    
-    def list_files(self, directory: Path, pattern: str = "*") -> List[Path]:
-        return [Path(f) for f in self.files.keys() if Path(f).parent == directory]
+from src.interfaces.file_system import MockFileSystem
 
 
 class TestSimpleNoteImporter:
