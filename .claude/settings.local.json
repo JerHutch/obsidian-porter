@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(obsidian-porter/Scripts/python -m pytest tests/unit/ -v)",
-      "Bash(obsidian-porter/Scripts/python -m pytest tests/unit/test_dependency_injection.py -v)"
+      "Bash(obsidian-porter/Scripts/python -m pytest tests/unit/test_dependency_injection.py -v)",
+      "Bash(obsidian-porter/Scripts/python -m pytest tests/unit/test_editor_pipeline.py tests/unit/test_tag_injector.py -x)"
     ],
     "deny": [],
     "ask": []
