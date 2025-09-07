@@ -9,14 +9,17 @@ from typing import Dict, Optional, Any
 from dateutil.parser import parse
 from datetime import datetime
 
+from .interfaces import FileSystemInterface, RealFileSystem
+
 
 class MetadataParser:
     """Parses SimpleNote JSON export to extract metadata"""
     
-    def __init__(self, json_path: Path):
+    def __init__(self, json_path: Path, file_system: Optional[FileSystemInterface] = None):
         self.json_path = json_path
+        self.file_system = file_system or RealFileSystem()
         self.metadata_map = {}
-        
+    
     def parse(self) -> Dict[str, Dict[str, Any]]:
         """
         Parse notes.json and return filename-to-metadata mapping
@@ -24,8 +27,19 @@ class MetadataParser:
         Returns:
             Dict mapping filenames to metadata dictionaries
         """
-        with open(self.json_path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
+        return self.parse_from_content(self.file_system.read_text(self.json_path))
+    
+    def parse_from_content(self, json_content: str) -> Dict[str, Dict[str, Any]]:
+        """
+        Parse JSON content and return filename-to-metadata mapping
+        
+        Args:
+            json_content: JSON content as string
+            
+        Returns:
+            Dict mapping filenames to metadata dictionaries
+        """
+        data = json.loads(json_content)
             
         # Extract activeNotes array
         notes = data.get('activeNotes', [])

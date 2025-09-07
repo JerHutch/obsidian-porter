@@ -51,7 +51,7 @@ class TagInjector(ContentProcessor):
         tags = []
         
         # Check for date patterns (journal entries)
-        if re.match(r'\d{2}-\d{2}-\d{4}', filename):
+        if re.search(r'\d{2}-\d{2}-\d{4}', filename):
             tags.append('journal')
             
         # Check for specific prefixes
@@ -78,7 +78,8 @@ class TagInjector(ContentProcessor):
             
         # Check for list patterns (might be reference lists)
         lines = content.split('\n')
-        list_lines = sum(1 for line in lines if line.strip().startswith(('- ', '* ', '+ ', '1. ', '2. ')))
+        list_lines = sum(1 for line in lines if line.strip().startswith(('- ', '* ', '+ ')) or 
+                        re.match(r'^\s*\d+\.\s', line))
         if list_lines > 3:  # More than 3 list items
             tags.append('lists')
             

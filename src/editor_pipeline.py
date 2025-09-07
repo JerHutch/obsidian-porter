@@ -4,7 +4,7 @@ Extensible system for content transformations and enhancements during import
 """
 
 from typing import Dict, Any, List, Optional, Tuple
-from pipelines import ContentProcessor, TagInjector, FolderOrganizer, ContentTransformer, NoteSplitter
+from .pipelines import ContentProcessor, TagInjector, FolderOrganizer, ContentTransformer, NoteSplitter
 
 
 class EditorPipeline:
