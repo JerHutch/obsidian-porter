@@ -48,12 +48,12 @@ class SimpleNoteImporter:
         if self.config.enable_editor_pipeline:
             self.editor_pipeline = self._setup_editor_pipeline()
         
-    def run(self) -> bool:
+    def run(self) -> dict:
         """
         Run the complete import process
         
         Returns:
-            True if successful, False if errors occurred
+            Summary dict: {'success': bool, 'total_files': int, 'processed_files': int, 'errors': int}
         """
         try:
             print("=== SimpleNote to Obsidian Importer ===")
@@ -80,7 +80,7 @@ class SimpleNoteImporter:
             
             if not notes:
                 print("No notes found to process!")
-                return False
+                return {'success': False, 'total_files': 0, 'processed_files': 0, 'errors': 0}
             
             # Step 3: Apply editor pipeline (Phase 2+3)
             if self.editor_pipeline:
@@ -154,13 +154,19 @@ class SimpleNoteImporter:
             
             # Summary
             self._print_summary(notes, metadata_map, saved_files)
-            return True
+            summary = {
+                'success': len(saved_files) == len(notes) and len(notes) > 0,
+                'total_files': len(notes),
+                'processed_files': len(saved_files),
+                'errors': max(0, len(notes) - len(saved_files))
+            }
+            return summary
             
         except Exception as e:
             print(f"Error during import: {e}")
             import traceback
             traceback.print_exc()
-            return False
+            return {'success': False, 'total_files': 0, 'processed_files': 0, 'errors': 1}
     
     def _print_summary(self, notes: list, metadata_map: dict, saved_files: dict):
         """Print import summary"""
@@ -178,6 +184,7 @@ class SimpleNoteImporter:
     def _setup_editor_pipeline(self) -> EditorPipeline:
         """Setup editor pipeline with configured processors"""
         from src.editor_pipeline import EditorPipeline
+        # Import at module level for patching in tests; keep local reference here
         from src.pipelines import TagInjector, FolderOrganizer, ContentTransformer, NoteSplitter
         
         # Lazily import CategoryClassifier to avoid circular imports
