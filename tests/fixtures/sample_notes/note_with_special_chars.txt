@@ -1,0 +1,5 @@
+Special Characters & Symbols Test
+
+This note contains special characters and unicode:
+café, résumé, naïve, façade, jalapeño
+Paths: C:\\Windows\\file.exe, /usr/local/bin/script.sh

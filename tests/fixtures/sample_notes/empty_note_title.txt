@@ -1,0 +1,3 @@
+Empty Note Title
+
+This note has an empty body after title (in some metadata cases).
