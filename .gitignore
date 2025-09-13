@@ -85,3 +85,6 @@ coverage.xml
 .env.local
 .env.production
 .env.test
+
+# LLM cache
+.cache/
