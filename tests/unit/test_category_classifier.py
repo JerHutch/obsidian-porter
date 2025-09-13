@@ -70,6 +70,7 @@ def test_category_classifier_suggest_policy(monkeypatch):
 
 def test_category_classifier_truncation(monkeypatch):
     cfg = make_config(llm_head_chars=10, llm_tail_chars=5)
+    cfg.llm_cache_enabled = False  # ensure provider is called
     clf = CategoryClassifier(config=cfg)
 
     captured = {}
