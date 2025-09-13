@@ -9,12 +9,12 @@ import argparse
 from pathlib import Path
 from typing import Optional
 
-from .metadata_parser import MetadataParser
-from .content_processor import ContentProcessor  
-from .obsidian_formatter import ObsidianFormatter
-from .editor_pipeline import EditorPipeline
-from .config import ImportConfig, ConfigManager
-from .interfaces import FileSystemInterface, RealFileSystem
+from src.metadata_parser import MetadataParser
+from src.content_processor import ContentProcessor  
+from src.obsidian_formatter import ObsidianFormatter
+from src.editor_pipeline import EditorPipeline
+from src.config import ImportConfig, ConfigManager
+from src.interfaces import FileSystemInterface, RealFileSystem
 
 
 class SimpleNoteImporter:
@@ -176,16 +176,26 @@ class SimpleNoteImporter:
     
     def _setup_editor_pipeline(self) -> EditorPipeline:
         """Setup editor pipeline with configured processors"""
-        from .editor_pipeline import EditorPipeline
-        from .pipelines import TagInjector, FolderOrganizer, ContentTransformer, NoteSplitter
+        from src.editor_pipeline import EditorPipeline
+        from src.pipelines import TagInjector, FolderOrganizer, ContentTransformer, NoteSplitter
+        
+        # Lazily import CategoryClassifier to avoid circular imports
+        try:
+            from src.pipelines.category_classifier import CategoryClassifier
+        except Exception:
+            CategoryClassifier = None
         
         pipeline = EditorPipeline()
+        
+        # LLM category classifier first if enabled
+        if getattr(self.config, 'enable_llm_categorization', False) and CategoryClassifier is not None:
+            pipeline.add_processor(CategoryClassifier(config=self.config))
         
         # Add processors based on configuration
         if self.config.enable_auto_tagging:
             # Pass custom tag rules if configured, otherwise empty dict
             tag_rules = self.config.custom_tag_rules if self.config.custom_tag_rules else {}
-            tag_injector = TagInjector(tag_rules=tag_rules)
+            tag_injector = TagInjector(tag_rules=tag_rules, propagate_category_tag=getattr(self.config, 'propagate_category_tag', True))
             pipeline.add_processor(tag_injector)
         
         if self.config.enable_folder_organization:
@@ -274,6 +284,14 @@ Examples:
         choices=['minimal', 'basic', 'organized', 'full', 'phase3'],
         help='Use a configuration preset (minimal, basic, organized, full, phase3)'
     )
+
+    # LLM options
+    parser.add_argument('--enable-llm', action='store_true', help='Enable LLM-based categorization')
+    parser.add_argument('--llm-provider', choices=['openai', 'anthropic', 'ollama', 'vertex', 'groq'], help='LLM provider to use')
+    parser.add_argument('--llm-model', type=str, help='Model name for the selected LLM provider')
+    parser.add_argument('--llm-timeout', type=int, help='Timeout (seconds) for LLM requests')
+    parser.add_argument('--llm-concurrency', type=int, help='Concurrency level for LLM requests')
+    parser.add_argument('--llm-base-url', type=str, help='Base URL for OpenAI-compatible endpoints (e.g., Ollama)')
     
     parser.add_argument(
         '--config',
@@ -314,6 +332,20 @@ Examples:
         # Phase 1 compatibility mode
         config = ImportConfig().get_phase2_preset('minimal')
         print("Using Phase 1 compatibility mode")
+
+    # Apply LLM CLI overrides
+    if args.enable_llm:
+        config.enable_llm_categorization = True
+    if args.llm_provider:
+        config.llm_provider = args.llm_provider
+    if args.llm_model:
+        config.llm_model = args.llm_model
+    if args.llm_timeout:
+        config.llm_timeout_sec = args.llm_timeout
+    if args.llm_concurrency:
+        config.llm_concurrency = args.llm_concurrency
+    if args.llm_base_url:
+        config.llm_base_url = args.llm_base_url
     
     # Validate configuration
     if config:

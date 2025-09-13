@@ -23,6 +23,35 @@ class ImportConfig:
     # Phase 3 Features
     enable_note_splitting: bool = False
     
+    # LLM Categorization
+    enable_llm_categorization: bool = False
+    llm_provider: str = "openai"  # allowed: openai, anthropic, ollama, vertex, groq
+    llm_model: Optional[str] = None
+    llm_api_keys: Dict[str, str] = field(default_factory=dict)  # provider -> ENV VAR NAME
+    llm_base_url: Optional[str] = None
+    llm_timeout_sec: int = 30
+    llm_max_retries: int = 2
+    llm_concurrency: int = 4
+    llm_cache_enabled: bool = True
+    llm_cache_path: str = ".cache/llm_category.jsonl"
+    llm_min_confidence: float = 0.6
+    llm_head_chars: int = 2500
+    llm_tail_chars: int = 500
+    undecided_policy: str = "other"  # other | suggest
+    suggestions_count: int = 3
+    propagate_category_tag: bool = True
+    categories: List[Dict[str, str]] = field(default_factory=lambda: [
+        {"name": "Cocktails", "slug": "cocktails", "description": "Cocktail recipes, mixed drinks, ingredients, techniques."},
+        {"name": "Recipes", "slug": "recipes", "description": "Food recipes, ingredients, cooking instructions."},
+        {"name": "Gaming", "slug": "gaming", "description": "Video games, gameplay notes, walkthroughs, strategies."},
+        {"name": "Music", "slug": "music", "description": "Music notes, artists, songs, albums, playlists."},
+        {"name": "Track lists", "slug": "track-lists", "description": "Tracklists, DJ sets, setlists, ordered lists of tracks."},
+        {"name": "House", "slug": "house", "description": "Home ownership and maintenance: projects, repairs, appliances, upkeep."},
+        {"name": "Role-playing games", "slug": "role-playing-games", "description": "Tabletop RPGs, characters, campaigns, rules."},
+        {"name": "Cisco", "slug": "cisco", "description": "Networking/Cisco notes, configs, commands."},
+        {"name": "Other", "slug": "other", "description": "Fallback category for low-confidence or uncategorized notes."},
+    ])
+    
     # Organization Settings
     organize_by_folder: bool = True
     folder_structure: str = "tags"  # "tags", "date", "custom", "flat"
@@ -179,6 +208,39 @@ class ConfigManager:
             'enable_folder_organization': True,
             'enable_content_transformation': True,
             
+            '# LLM Categorization (Phase 3)': None,
+            'enable_llm_categorization': False,
+            'llm_provider': 'openai',  # options: openai, anthropic, ollama, vertex, groq
+            'llm_model': 'gpt-4o-mini',
+            'llm_api_keys': {
+                'openai': 'OPENAI_API_KEY',
+                'anthropic': 'ANTHROPIC_API_KEY',
+                'ollama': 'OLLAMA_API_KEY'
+            },
+            'llm_base_url': None,  # e.g., 'http://localhost:11434/v1' for Ollama
+            'llm_timeout_sec': 30,
+            'llm_max_retries': 2,
+            'llm_concurrency': 4,
+            'llm_cache_enabled': True,
+            'llm_cache_path': '.cache/llm_category.jsonl',
+            'llm_min_confidence': 0.6,
+            'llm_head_chars': 2500,
+            'llm_tail_chars': 500,
+            'undecided_policy': 'other',  # other | suggest
+            'suggestions_count': 3,
+            'propagate_category_tag': True,
+            'categories': [
+                { 'name': 'Cocktails', 'slug': 'cocktails', 'description': 'Cocktail recipes, mixed drinks, ingredients, techniques.' },
+                { 'name': 'Recipes', 'slug': 'recipes', 'description': 'Food recipes, ingredients, cooking instructions.' },
+                { 'name': 'Gaming', 'slug': 'gaming', 'description': 'Video games, gameplay notes, walkthroughs, strategies.' },
+                { 'name': 'Music', 'slug': 'music', 'description': 'Music notes, artists, songs, albums, playlists.' },
+                { 'name': 'Track lists', 'slug': 'track-lists', 'description': 'Tracklists, DJ sets, setlists, ordered lists of tracks.' },
+                { 'name': 'House', 'slug': 'house', 'description': 'Home ownership and maintenance: projects, repairs, appliances, upkeep.' },
+                { 'name': 'Role-playing games', 'slug': 'role-playing-games', 'description': 'Tabletop RPGs, characters, campaigns, rules.' },
+                { 'name': 'Cisco', 'slug': 'cisco', 'description': 'Networking/Cisco notes, configs, commands.' },
+                { 'name': 'Other', 'slug': 'other', 'description': 'Fallback category for low-confidence or uncategorized notes.' }
+            ],
+            
             '# Organization Settings': None,
             'organize_by_folder': True,
             'folder_structure': 'tags',  # options: tags, date, custom, flat
@@ -248,5 +310,31 @@ class ConfigManager:
         
         if not config.enable_auto_tagging and (config.custom_tag_rules or config.tag_blacklist):
             warnings.append("Tag rules defined but auto_tagging is disabled")
+        
+        # LLM validations
+        valid_providers = ['openai', 'anthropic', 'ollama', 'vertex', 'groq']
+        if getattr(config, 'enable_llm_categorization', False):
+            if config.llm_provider not in valid_providers:
+                warnings.append(f"Invalid llm_provider '{config.llm_provider}'. Valid options: {valid_providers}")
+            if not (0.0 <= config.llm_min_confidence <= 1.0):
+                warnings.append("llm_min_confidence must be between 0.0 and 1.0")
+            if config.llm_timeout_sec <= 0:
+                warnings.append("llm_timeout_sec must be > 0")
+            if config.llm_max_retries < 0:
+                warnings.append("llm_max_retries must be >= 0")
+            if config.llm_concurrency <= 0:
+                warnings.append("llm_concurrency must be >= 1")
+            if config.llm_head_chars < 0 or config.llm_tail_chars < 0:
+                warnings.append("llm_head_chars and llm_tail_chars must be >= 0")
+            # API key env var name presence (soft warning)
+            api_env_var = config.llm_api_keys.get(config.llm_provider)
+            if config.llm_provider in ['openai', 'anthropic', 'groq', 'vertex'] and not api_env_var:
+                warnings.append(f"No API key env var name configured for provider '{config.llm_provider}' in llm_api_keys")
+            # Category slugs uniqueness and presence of 'other'
+            slugs = [c.get('slug') for c in (config.categories or [])]
+            if len(slugs) != len(set(slugs)):
+                warnings.append("Duplicate category slugs detected in categories configuration")
+            if 'other' not in slugs:
+                warnings.append("Categories should include an 'other' slug for fallback")
         
         return warnings
