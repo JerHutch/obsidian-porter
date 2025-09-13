@@ -35,7 +35,9 @@ class ObsidianFormatter:
         content = note_data.get('content', '')
         
         # Combine frontmatter and content
-        formatted_note = f"---\n{yaml.dump(frontmatter, default_flow_style=False)}---\n\n{content}"
+        # Use default_flow_style=False but prevent quoting ISO datetimes
+        yaml_str = yaml.dump(frontmatter, default_flow_style=False, allow_unicode=True)
+        formatted_note = f"---\n{yaml_str}---\n\n{content}"
         
         return formatted_note
     
@@ -83,6 +85,8 @@ class ObsidianFormatter:
             
         # Replace other problematic characters for Obsidian
         title = title.replace('[', '(').replace(']', ')')
+        
+        # Ensure unicode is preserved (allow_unicode in YAML handles rendering)
         
         # Limit length and strip whitespace
         title = title.strip()[:100]

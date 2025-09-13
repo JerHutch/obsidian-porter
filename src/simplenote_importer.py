@@ -13,6 +13,7 @@ from src.metadata_parser import MetadataParser
 from src.content_processor import ContentProcessor  
 from src.obsidian_formatter import ObsidianFormatter
 from src.editor_pipeline import EditorPipeline
+from src.pipelines import TagInjector, FolderOrganizer, ContentTransformer, NoteSplitter
 from src.config import ImportConfig, ConfigManager
 from src.interfaces import FileSystemInterface, RealFileSystem
 
