@@ -20,6 +20,7 @@ class _ClassificationResult:
     confidence: float
     reasons: str
     suggestions: List[str]
+    tags: List[str]
     undecided: bool = False
 
 
@@ -159,6 +160,7 @@ class CategoryClassifier(ContentProcessor):
                                 confidence=rec.get('result', {}).get('confidence', 0.0),
                                 reasons=rec.get('result', {}).get('reasons', ''),
                                 suggestions=rec.get('result', {}).get('suggestions', []),
+                                tags=rec.get('result', {}).get('tags', []),
                                 undecided=rec.get('result', {}).get('undecided', False),
                             )
                     except Exception:
@@ -180,6 +182,7 @@ class CategoryClassifier(ContentProcessor):
                         'reasons': result.reasons,
                         'suggestions': result.suggestions,
                         'undecided': result.undecided,
+                        'tags': getattr(result, 'tags', []),
                     }
                 }) + "\n")
         except Exception:
@@ -234,7 +237,8 @@ class CategoryClassifier(ContentProcessor):
             # LiteLLM returns OpenAI-format responses
             content = resp['choices'][0]['message']['content']
             # Strip code fences if any
-            if isinstance(content, str) and content.strip().startswith("```)":
+            if isinstance(content, str) and content.strip().startswith("```"):
+                # handle ```json ... ``` or ``` ... ```
                 # handle ```json ... ``` or ``` ... ```
                 parts = content.strip().split("\n", 1)
                 if len(parts) == 2:
@@ -253,10 +257,13 @@ class CategoryClassifier(ContentProcessor):
                 cat = None
             undecided = cat is None or conf < self.min_conf
             res = _ClassificationResult(
-                category_slug=cat, confidence=conf, reasons=reasons, suggestions=suggestions, undecided=undecided
+                category_slug=cat,
+                confidence=conf,
+                reasons=reasons,
+                suggestions=suggestions,
+                tags=tags,
+                undecided=undecided,
             )
-            # attach tags dynamically
-            setattr(res, 'tags', tags)
             return res
         except Exception as e:
             return _ClassificationResult(category_slug=None, confidence=0.0, reasons=str(e), suggestions=[], undecided=True)
