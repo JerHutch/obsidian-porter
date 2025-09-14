@@ -111,6 +111,9 @@ categories:
   - name: Anime
     slug: anime
     description: "Japanese anime tv shows and movies"
+  - name: Health
+    slug: health
+    description: "Medical health, body measurements, exercise, workouts"
   - name: Other
     slug: other
     description: "Fallback category for low-confidence or uncategorized notes."
@@ -186,4 +189,3 @@ split_notes_patterns: []
 split_enabled_tags:
   - cocktails
   - recipes
-  - drinks
