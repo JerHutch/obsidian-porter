@@ -67,8 +67,13 @@ class SimpleNoteImporter:
             if self.metadata_parser:
                 print("Step 1: Parsing metadata from JSON...")
                 try:
-                    metadata_map = self.metadata_parser.parse()
-                    print(f"Parsed metadata for {len(metadata_map)} notes")
+                    # If JSON path does not exist, skip gracefully
+                    if hasattr(self.file_system, 'exists') and self.json_path and not self.file_system.exists(self.json_path):
+                        print("Warning: JSON file not found. Continuing without metadata.")
+                        metadata_map = {}
+                    else:
+                        metadata_map = self.metadata_parser.parse()
+                        print(f"Parsed metadata for {len(metadata_map)} notes")
                 except Exception as e:
                     print(f"Warning: Failed to parse JSON metadata ({e}). Continuing without metadata.")
                     metadata_map = {}

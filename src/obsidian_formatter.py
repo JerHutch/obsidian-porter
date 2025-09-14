@@ -63,14 +63,14 @@ class ObsidianFormatter:
                 frontmatter['modified'] = self._format_datetime(metadata['modified'])
                 
             # Add other metadata
-            if metadata.get('original_id'):
+            if 'original_id' in metadata:
                 frontmatter['original_id'] = metadata['original_id']
-            if metadata.get('tags'):
-                frontmatter['tags'] = metadata['tags']
-            if metadata.get('markdown'):
-                frontmatter['markdown'] = metadata['markdown']
-            if metadata.get('pinned'):
-                frontmatter['pinned'] = metadata['pinned']
+            # Always include tags (empty or not)
+            frontmatter['tags'] = metadata.get('tags', [])
+            if 'markdown' in metadata:
+                frontmatter['markdown'] = bool(metadata['markdown'])
+            if 'pinned' in metadata:
+                frontmatter['pinned'] = bool(metadata['pinned'])
         else:
             # Default values when no metadata available
             frontmatter['tags'] = []
