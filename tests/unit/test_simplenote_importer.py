@@ -231,6 +231,8 @@ class TestSimpleNoteImporter:
             # Mock processors
             importer.metadata_parser = Mock()
             importer.metadata_parser.parse.return_value = mock_metadata_map
+            importer.file_system = Mock()
+            importer.file_system.exists.return_value = True
             
             importer.content_processor = Mock()
             importer.content_processor.process_all_notes.return_value = mock_notes
@@ -497,6 +499,7 @@ class TestSimpleNoteImporter:
             
             mock_content_transformer = Mock()
             mock_content_transformer.transformation_rules = {}
+            mock_content_transformer.transformation_rules.update = Mock()
             mock_content_transformer_class.return_value = mock_content_transformer
             
             importer = SimpleNoteImporter(Path("/tmp"), config=config)
