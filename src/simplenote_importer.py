@@ -337,6 +337,15 @@ Examples:
     parser.add_argument('--llm-concurrency', type=int, help='Concurrency level for LLM requests')
     parser.add_argument('--llm-base-url', type=str, help='Base URL for OpenAI-compatible endpoints (e.g., Ollama)')
     parser.add_argument('--clear-llm-cache', action='store_true', help='Delete LLM cache file before processing')
+
+    # Prompt and suggestions/tags flags
+    parser.add_argument('--llm-prompt-template', type=Path, help='Path to LLM prompt template file with placeholders')
+    parser.add_argument('--llm-prompt-version', type=str, help='Prompt version string to force cache invalidation on changes')
+    parser.add_argument('--llm-allow-freeform-suggestions', action='store_true', help='Allow free-form suggestions beyond configured category slugs')
+    parser.add_argument('--llm-suggest-tags', action='store_true', help='Ask the LLM to return tags (stored in metadata.llm_tags)')
+    parser.add_argument('--llm-tags-max', type=int, help='Maximum number of LLM-generated tags to keep')
+    parser.add_argument('--llm-tags-min', type=int, help='Minimum desired number of LLM-generated tags (informational)')
+    parser.add_argument('--llm-suggestions-count', type=int, help='Cap the number of category suggestions returned')
     
     parser.add_argument(
         '--config',
@@ -391,6 +400,20 @@ Examples:
         config.llm_concurrency = args.llm_concurrency
     if args.llm_base_url:
         config.llm_base_url = args.llm_base_url
+    if args.llm_prompt_template:
+        config.llm_prompt_template_path = str(args.llm_prompt_template)
+    if args.llm_prompt_version:
+        config.llm_prompt_version = args.llm_prompt_version
+    if args.llm_allow_freeform_suggestions:
+        config.llm_allow_freeform_suggestions = True
+    if args.llm_suggest_tags:
+        config.llm_suggest_tags = True
+    if args.llm_tags_max is not None:
+        config.llm_tags_max_count = args.llm_tags_max
+    if args.llm_tags_min is not None:
+        config.llm_tags_min_count = args.llm_tags_min
+    if args.llm_suggestions_count is not None:
+        config.suggestions_count = args.llm_suggestions_count
 
     # Optional: clear LLM cache before processing
     if getattr(args, 'clear_llm_cache', False):
@@ -419,6 +442,10 @@ Examples:
     if args.json and not args.json.exists():
         print(f"Error: JSON file does not exist: {args.json}")
         sys.exit(1)
+
+    # Ensure a sensible default model for OpenAI if not explicitly set
+    if getattr(config, 'enable_llm_categorization', False) and getattr(config, 'llm_provider', 'openai') == 'openai' and not getattr(config, 'llm_model', None):
+        config.llm_model = 'gpt-4o-mini'
     
     # Run import
     importer = SimpleNoteImporter(
