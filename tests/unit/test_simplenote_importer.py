@@ -203,7 +203,7 @@ class TestSimpleNoteImporter:
             
             result = importer.run()
             
-            assert result is True
+            assert isinstance(result, dict) and result.get('success') is True
             importer.content_processor.process_all_notes.assert_called_once()
             importer.obsidian_formatter.save_all_notes.assert_called_once_with(mock_notes, {})
     
@@ -240,7 +240,7 @@ class TestSimpleNoteImporter:
             
             result = importer.run()
             
-            assert result is True
+            assert isinstance(result, dict) and result.get('success') is True
             importer.metadata_parser.parse.assert_called_once()
             importer.obsidian_formatter.save_all_notes.assert_called_once_with(mock_notes, mock_metadata_map)
     
@@ -275,7 +275,7 @@ class TestSimpleNoteImporter:
             
             result = importer.run()
             
-            assert result is True
+            assert isinstance(result, dict) and result.get('success') is True
             importer.editor_pipeline.process.assert_called_once_with(
                 'Original content', {}, {
                     'filename': 'note1.txt',
@@ -322,7 +322,7 @@ class TestSimpleNoteImporter:
             
             result = importer.run()
             
-            assert result is True
+            assert isinstance(result, dict) and result.get('success') is True
             
             # Should process split notes
             expected_metadata_map = {
@@ -359,7 +359,7 @@ class TestSimpleNoteImporter:
             
             result = importer.run()
             
-            assert result is False
+            assert isinstance(result, dict) and result.get('success') is False
             mock_print.assert_any_call("No notes found to process!")
     
     @patch('builtins.print')
@@ -384,7 +384,7 @@ class TestSimpleNoteImporter:
             with patch('traceback.print_exc') as mock_traceback:
                 result = importer.run()
                 
-                assert result is False
+                assert isinstance(result, dict) and result.get('success') is False
                 mock_print.assert_any_call("Error during import: Test error")
                 mock_traceback.assert_called_once()
     
@@ -442,7 +442,7 @@ class TestSimpleNoteImporter:
         with patch('builtins.print'):  # Suppress output for test
             result = importer.run()
         
-        assert result is True
+        assert isinstance(result, dict) and result.get('success') is True
         
         # Check output was created
         output_dir = notes_dir / "obsidian_vault"
@@ -503,7 +503,8 @@ class TestSimpleNoteImporter:
             
             # Should pass custom rules to processors
             mock_tag_injector_class.assert_called_with(tag_rules=custom_tag_rules)
-            mock_folder_organizer.organization_rules.update.assert_called_with(custom_folder_rules)
+            # Folder rules should be merged
+            assert all(item in mock_folder_organizer.organization_rules.items() for item in custom_folder_rules.items())
             mock_content_transformer.transformation_rules.update.assert_called_with(custom_transformations)
     
     def test_main_function_imports(self):
