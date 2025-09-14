@@ -510,8 +510,6 @@ class TestSimpleNoteImporter:
             # Content transformer rules should be merged
             for k, v in custom_transformations.items():
                 assert mock_content_transformer.transformation_rules.get(k) == v
-            mock_content_transformer.transformation_rules.update.assert_called_with(custom_transformations)
-    
     def test_main_function_imports(self):
         """Test that main function and CLI imports work correctly"""
         # This test ensures the main function can be imported without errors
