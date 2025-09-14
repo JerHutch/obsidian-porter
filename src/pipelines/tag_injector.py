@@ -11,16 +11,18 @@ from .base_processor import ContentProcessor
 class TagInjector(ContentProcessor):
     """Processor that adds tags based on content analysis and filename patterns"""
     
-    def __init__(self, tag_rules: Optional[Dict[str, List[str]]] = None, **kwargs):
+    def __init__(self, tag_rules: Optional[Dict[str, List[str]]] = None, propagate_category_tag: bool = True, **kwargs):
         """
         Initialize with tag rules
         
         Args:
             tag_rules: Dict mapping patterns to tag lists
+            propagate_category_tag: If True, ensure chosen category slug is included as a tag
             **kwargs: Additional arguments passed to base class
         """
         super().__init__(**kwargs)
         self.tag_rules = tag_rules or {}
+        self.propagate_category_tag = propagate_category_tag
     
     @property
     def name(self) -> str:
@@ -39,6 +41,11 @@ class TagInjector(ContentProcessor):
         
         # Analyze content for patterns
         new_tags.update(self._extract_content_tags(content))
+        
+        # Category tag propagation
+        category = metadata.get('category')
+        if self.propagate_category_tag and category:
+            new_tags.add(category)
         
         # Update metadata
         updated_metadata = metadata.copy()

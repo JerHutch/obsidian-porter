@@ -142,7 +142,7 @@ class MockFileSystem(FileSystemInterface):
                     
                     # Match against pattern
                     if fnmatch.fnmatch(filename, pattern):
-                        matches.append(Path(file_path_key.replace('/', '\\')))  # Convert back for Windows
+                        matches.append(Path(file_path_key))  # Keep POSIX style for tests
         
         return matches
     

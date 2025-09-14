@@ -9,12 +9,13 @@ import argparse
 from pathlib import Path
 from typing import Optional
 
-from .metadata_parser import MetadataParser
-from .content_processor import ContentProcessor  
-from .obsidian_formatter import ObsidianFormatter
-from .editor_pipeline import EditorPipeline
-from .config import ImportConfig, ConfigManager
-from .interfaces import FileSystemInterface, RealFileSystem
+from src.metadata_parser import MetadataParser
+from src.content_processor import ContentProcessor  
+from src.obsidian_formatter import ObsidianFormatter
+from src.editor_pipeline import EditorPipeline
+from src.pipelines import TagInjector, FolderOrganizer, ContentTransformer, NoteSplitter
+from src.config import ImportConfig, ConfigManager
+from src.interfaces import FileSystemInterface, RealFileSystem
 
 
 class SimpleNoteImporter:
@@ -47,12 +48,12 @@ class SimpleNoteImporter:
         if self.config.enable_editor_pipeline:
             self.editor_pipeline = self._setup_editor_pipeline()
         
-    def run(self) -> bool:
+    def run(self) -> dict:
         """
         Run the complete import process
         
         Returns:
-            True if successful, False if errors occurred
+            Summary dict: {'success': bool, 'total_files': int, 'processed_files': int, 'errors': int}
         """
         try:
             print("=== SimpleNote to Obsidian Importer ===")
@@ -65,8 +66,17 @@ class SimpleNoteImporter:
             metadata_map = {}
             if self.metadata_parser:
                 print("Step 1: Parsing metadata from JSON...")
-                metadata_map = self.metadata_parser.parse()
-                print(f"Parsed metadata for {len(metadata_map)} notes")
+                try:
+                    # If JSON path does not exist, skip gracefully
+                    if hasattr(self.file_system, 'exists') and self.json_path and not self.file_system.exists(self.json_path):
+                        print("Warning: JSON file not found. Continuing without metadata.")
+                        metadata_map = {}
+                    else:
+                        metadata_map = self.metadata_parser.parse()
+                        print(f"Parsed metadata for {len(metadata_map)} notes")
+                except Exception as e:
+                    print(f"Warning: Failed to parse JSON metadata ({e}). Continuing without metadata.")
+                    metadata_map = {}
             else:
                 print("Step 1: Skipping metadata parsing (no JSON file provided)")
             print()
@@ -79,7 +89,7 @@ class SimpleNoteImporter:
             
             if not notes:
                 print("No notes found to process!")
-                return False
+                return {'success': False, 'total_files': 0, 'processed_files': 0, 'errors': 0}
             
             # Step 3: Apply editor pipeline (Phase 2+3)
             if self.editor_pipeline:
@@ -89,7 +99,12 @@ class SimpleNoteImporter:
                 
                 for note in notes:
                     original_filename = note.get('filename', '')
+                    # Try to get metadata by original filename; fallback to title-based key
                     original_metadata = metadata_map.get(original_filename, {})
+                    if not original_metadata:
+                        alt_key = self._derive_title_based_filename(note.get('content', ''))
+                        if alt_key:
+                            original_metadata = metadata_map.get(alt_key, {})
                     
                     # Create processing context
                     context = {
@@ -153,13 +168,19 @@ class SimpleNoteImporter:
             
             # Summary
             self._print_summary(notes, metadata_map, saved_files)
-            return True
+            summary = {
+                'success': len(saved_files) == len(notes) and len(notes) > 0,
+                'total_files': len(notes),
+                'processed_files': len(saved_files),
+                'errors': max(0, len(notes) - len(saved_files))
+            }
+            return summary
             
         except Exception as e:
             print(f"Error during import: {e}")
             import traceback
             traceback.print_exc()
-            return False
+            return {'success': False, 'total_files': 0, 'processed_files': 0, 'errors': 1}
     
     def _print_summary(self, notes: list, metadata_map: dict, saved_files: dict):
         """Print import summary"""
@@ -176,10 +197,21 @@ class SimpleNoteImporter:
     
     def _setup_editor_pipeline(self) -> EditorPipeline:
         """Setup editor pipeline with configured processors"""
-        from .editor_pipeline import EditorPipeline
-        from .pipelines import TagInjector, FolderOrganizer, ContentTransformer, NoteSplitter
+        # If already created, return existing to avoid duplicate processor instantiation (test-friendly)
+        if getattr(self, 'editor_pipeline', None):
+            return self.editor_pipeline
+        
+        # Lazily import CategoryClassifier to avoid circular imports
+        try:
+            from src.pipelines.category_classifier import CategoryClassifier
+        except Exception:
+            CategoryClassifier = None
         
         pipeline = EditorPipeline()
+        
+        # LLM category classifier first if enabled
+        if getattr(self.config, 'enable_llm_categorization', False) and CategoryClassifier is not None:
+            pipeline.add_processor(CategoryClassifier(config=self.config))
         
         # Add processors based on configuration
         if self.config.enable_auto_tagging:
@@ -217,6 +249,27 @@ class SimpleNoteImporter:
             pipeline.add_processor(note_splitter)
         
         return pipeline
+
+    def _derive_title_based_filename(self, content: str) -> Optional[str]:
+        """Derive a metadata filename key from the first line of content.
+        Mirrors MetadataParser filename generation logic.
+        """
+        if not content:
+            return None
+        lines = content.strip().split('\n')
+        if not lines:
+            return None
+        first_line = lines[0].strip()
+        if first_line.startswith('#'):
+            first_line = first_line.lstrip('# ').strip()
+        if not first_line:
+            return None
+        # Sanitize like MetadataParser._sanitize_filename
+        invalid_chars = '<>:"/\\|?*'
+        for ch in invalid_chars:
+            first_line = first_line.replace(ch, '_')
+        first_line = first_line.strip()[:100]
+        return f"{first_line if first_line else 'untitled'}.txt"
 
 
 def main():
@@ -274,6 +327,14 @@ Examples:
         choices=['minimal', 'basic', 'organized', 'full', 'phase3'],
         help='Use a configuration preset (minimal, basic, organized, full, phase3)'
     )
+
+    # LLM options
+    parser.add_argument('--enable-llm', action='store_true', help='Enable LLM-based categorization')
+    parser.add_argument('--llm-provider', choices=['openai', 'anthropic', 'ollama', 'vertex', 'groq'], help='LLM provider to use')
+    parser.add_argument('--llm-model', type=str, help='Model name for the selected LLM provider')
+    parser.add_argument('--llm-timeout', type=int, help='Timeout (seconds) for LLM requests')
+    parser.add_argument('--llm-concurrency', type=int, help='Concurrency level for LLM requests')
+    parser.add_argument('--llm-base-url', type=str, help='Base URL for OpenAI-compatible endpoints (e.g., Ollama)')
     
     parser.add_argument(
         '--config',
@@ -314,6 +375,20 @@ Examples:
         # Phase 1 compatibility mode
         config = ImportConfig().get_phase2_preset('minimal')
         print("Using Phase 1 compatibility mode")
+
+    # Apply LLM CLI overrides
+    if args.enable_llm:
+        config.enable_llm_categorization = True
+    if args.llm_provider:
+        config.llm_provider = args.llm_provider
+    if args.llm_model:
+        config.llm_model = args.llm_model
+    if args.llm_timeout:
+        config.llm_timeout_sec = args.llm_timeout
+    if args.llm_concurrency:
+        config.llm_concurrency = args.llm_concurrency
+    if args.llm_base_url:
+        config.llm_base_url = args.llm_base_url
     
     # Validate configuration
     if config:

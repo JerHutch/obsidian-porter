@@ -50,7 +50,7 @@ temp/
 data/
 *.zip
 test_data/
-sample_notes/
+# keep test fixtures; do not ignore tests/fixtures/sample_notes
 
 # OS Files
 .DS_Store
@@ -85,3 +85,6 @@ coverage.xml
 .env.local
 .env.production
 .env.test
+
+# LLM cache
+.cache/

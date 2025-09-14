@@ -32,9 +32,13 @@ class FolderOrganizer(ContentProcessor):
             return content, metadata
             
         tags = metadata.get('tags', [])
+        category = metadata.get('category')
         
-        # Determine folder based on tags
-        folder_path = self._determine_folder(tags, content, context.get('filename', ''))
+        # Determine folder based on category first, then tags
+        if category:
+            folder_path = self.organization_rules.get(category, category)
+        else:
+            folder_path = self._determine_folder(tags, content, context.get('filename', ''))
         
         # Add folder info to context for the formatter
         updated_metadata = metadata.copy()

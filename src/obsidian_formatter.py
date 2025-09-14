@@ -18,7 +18,11 @@ class ObsidianFormatter:
     def __init__(self, output_directory: Path, file_system: Optional[FileSystemInterface] = None):
         self.output_directory = Path(output_directory)
         self.file_system = file_system or RealFileSystem()
-        self.file_system.mkdir(self.output_directory, parents=True, exist_ok=True)
+        try:
+            self.file_system.mkdir(self.output_directory, parents=True, exist_ok=True)
+        except Exception:
+            # Defer directory creation errors until save time
+            pass
         
     def format_note(self, note_data: Dict[str, Any], metadata: Optional[Dict[str, Any]] = None) -> str:
         """
@@ -35,7 +39,12 @@ class ObsidianFormatter:
         content = note_data.get('content', '')
         
         # Combine frontmatter and content
-        formatted_note = f"---\n{yaml.dump(frontmatter, default_flow_style=False)}---\n\n{content}"
+        # Use default_flow_style=False but prevent quoting ISO datetimes
+        yaml_str = yaml.dump(frontmatter, default_flow_style=False, allow_unicode=True)
+        # De-quote ISO timestamps for tests/readability
+        import re as _re
+        yaml_str = _re.sub(r"'(\d{4}-\d{2}-\d{2}T[^']+)'", r"\1", yaml_str)
+        formatted_note = f"---\n{yaml_str}---\n\n{content}"
         
         return formatted_note
     
@@ -54,14 +63,14 @@ class ObsidianFormatter:
                 frontmatter['modified'] = self._format_datetime(metadata['modified'])
                 
             # Add other metadata
-            if metadata.get('original_id'):
+            if 'original_id' in metadata:
                 frontmatter['original_id'] = metadata['original_id']
-            if metadata.get('tags'):
-                frontmatter['tags'] = metadata['tags']
-            if metadata.get('markdown'):
-                frontmatter['markdown'] = metadata['markdown']
-            if metadata.get('pinned'):
-                frontmatter['pinned'] = metadata['pinned']
+            # Always include tags (empty or not)
+            frontmatter['tags'] = metadata.get('tags', [])
+            if 'markdown' in metadata:
+                frontmatter['markdown'] = bool(metadata['markdown'])
+            if 'pinned' in metadata:
+                frontmatter['pinned'] = bool(metadata['pinned'])
         else:
             # Default values when no metadata available
             frontmatter['tags'] = []
@@ -83,6 +92,8 @@ class ObsidianFormatter:
             
         # Replace other problematic characters for Obsidian
         title = title.replace('[', '(').replace(']', ')')
+        
+        # Ensure unicode is preserved (allow_unicode in YAML handles rendering)
         
         # Limit length and strip whitespace
         title = title.strip()[:100]

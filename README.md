@@ -28,7 +28,49 @@ Successfully implemented enhanced processing with:
 - **Custom Rules**: Flexible pattern-based tagging and organization rules
 - **Editor Pipeline**: Extensible framework for content processing modules
 
+### New: LLM-based Note Categorization (Phase 3)
+- Assign a single primary category to each note using a configurable Large Language Model (LLM)
+- Category is stored in metadata as `category`, can be propagated as a tag, and preferred by Folder Organizer
+- Supports providers: openai, anthropic, ollama (OpenAI-compatible), vertex, groq
+- Caching, confidence thresholds, suggestions policy, and token controls (head/tail sampling)
+- See docs/llm-categorization.md and the full sample config at config/sample_config_full.yaml
+
 ## Usage
+
+For a step-by-step walkthrough, see docs/user-guide.md.
+
+### Enabling LLM-Based Categorization
+
+Set your API key(s) as environment variables, then run with CLI flags:
+
+```bash
+# OpenAI example (remote)
+export OPENAI_API_KEY={{OPENAI_API_KEY}}
+python import.py --smart \
+  --enable-llm \
+  --llm-provider openai \
+  --llm-model gpt-4o-mini
+
+# OpenAI-compatible example (local Ollama gateway)
+python import.py --smart \
+  --enable-llm \
+  --llm-provider openai \
+  --llm-model gpt-4o-mini \
+  --llm-base-url http://localhost:11434/v1
+
+# Optional tuning
+python import.py --smart \
+  --enable-llm \
+  --llm-provider openai \
+  --llm-model gpt-4o-mini \
+  --llm-timeout 30 \
+  --llm-concurrency 4
+```
+
+Notes:
+- Providers: openai | anthropic | ollama | vertex | groq
+- API keys via env vars configured in your YAML (see config/sample_config_full.yaml). Do not store secrets in files.
+- Results are cached to .cache/llm_category.jsonl when enabled. .cache/ is git-ignored.
 
 ### Basic Usage
 ```bash
@@ -48,14 +90,18 @@ python import.py --preset full --notes data --json data/source/notes.json
 - **`basic`**: Auto-tagging and content transformation only
 - **`organized`**: Full smart processing with folder organization
 - **`full`**: All features including index files and backlinks
+- **`phase3`**: Enables advanced features including note splitting
 
 ### Custom Configuration
 ```bash
-# Create a sample configuration file
+# Create a minimal sample configuration file
 python import.py --create-sample-config
 
 # Use custom configuration
 python import.py --config config/my_settings.yaml --notes data --json data/source/notes.json
+
+# You can also start from the full sample (includes every option):
+#   cp config/sample_config_full.yaml config/my_settings.yaml
 ```
 
 ### Virtual Environment Setup

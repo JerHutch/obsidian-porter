@@ -1,0 +1,5 @@
+My First Test Note
+
+This is a simple note with basic text content.
+No special formatting or complex features.
+Just plain text for testing basic functionality.
