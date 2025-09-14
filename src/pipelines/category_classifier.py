@@ -10,6 +10,7 @@ from typing import Dict, Any, List, Optional, Tuple
 from dataclasses import dataclass
 
 from .base_processor import ContentProcessor
+from litellm import completion as llm_completion
 
 
 @dataclass
@@ -168,66 +169,74 @@ class CategoryClassifier(ContentProcessor):
         allowed_slugs = [c['slug'] for c in categories]
         descriptions = {c['slug']: c.get('description', '') for c in categories}
 
-        user_prompt = (
+        system_msg = { 'role': 'system', 'content': 'Respond ONLY with a JSON object, no prose.' }
+        user_msg = { 'role': 'user', 'content': (
             "You are a strict JSON generator. Given the note text, classify it into exactly one of the allowed category slugs or 'other'.\n"
             "Return ONLY a JSON object with fields: category_slug, confidence (0..1), reasons (short), suggestions (array of slugs).\n\n"
             f"Allowed slugs: {allowed_slugs}\n"
             f"Descriptions: {descriptions}\n\n"
             f"Text:\n{text}\n"
-        )
+        ) }
 
-        # Provider selection (OpenAI first; others can be added later)
-        if self.provider == 'openai':
-            return self._classify_openai(user_prompt, allowed_slugs)
-        # Fallback: return undecided to be safe
-        return _ClassificationResult(category_slug=None, confidence=0.0, reasons='Provider not implemented', suggestions=[], undecided=True)
+        # Ensure env vars expected by LiteLLM, based on configured mapping
+        self._ensure_provider_env()
 
-    def _classify_openai(self, user_prompt: str, allowed_slugs: List[str]) -> _ClassificationResult:
-        # Resolve API key env var name from config
-        api_env_name = self.api_keys.get('openai') or 'OPENAI_API_KEY'
-        api_key = os.environ.get(api_env_name)
-        if not api_key:
-            return _ClassificationResult(category_slug=None, confidence=0.0, reasons=f'Missing {api_env_name}', suggestions=allowed_slugs[:2], undecided=True)
-
-        import json as _json
-        import urllib.request as _req
-        import urllib.error as _err
-
-        url = (self.base_url or 'https://api.openai.com/v1') + '/chat/completions'
-        model = self.model or 'gpt-4o-mini'
-        payload = {
-            'model': model,
-            'messages': [
-                { 'role': 'system', 'content': 'Respond ONLY with a JSON object, no prose.' },
-                { 'role': 'user', 'content': user_prompt }
-            ],
-            'temperature': 0.0,
-            'response_format': { 'type': 'json_object' }
+        # Construct LiteLLM model identifier
+        provider_prefix_map = {
+            'openai': 'openai',
+            'anthropic': 'anthropic',
+            'ollama': 'ollama',
+            'vertex': 'vertex_ai',  # LiteLLM uses 'vertex_ai'
+            'groq': 'groq',
         }
-        data = _json.dumps(payload).encode('utf-8')
-        req = _req.Request(url, data=data, headers={
-            'Authorization': f'Bearer {api_key}',
-            'Content-Type': 'application/json'
-        })
-        try:
-            with _req.urlopen(req, timeout=getattr(self.config, 'llm_timeout_sec', 30)) as resp:
-                body = resp.read().decode('utf-8')
-        except _err.HTTPError as e:
-            return _ClassificationResult(category_slug=None, confidence=0.0, reasons=f'HTTP {e.code}', suggestions=[], undecided=True)
-        except Exception as e:
-            return _ClassificationResult(category_slug=None, confidence=0.0, reasons=str(e), suggestions=[], undecided=True)
+        prefix = provider_prefix_map.get(self.provider, self.provider)
+        model_name = self.model or 'gpt-4o-mini'
+        litellm_model = model_name if '/' in model_name else f"{prefix}/{model_name}"
+
+        kwargs = {
+            'model': litellm_model,
+            'messages': [system_msg, user_msg],
+        }
+        # Pass base URL if using an OpenAI-compatible endpoint (e.g., Ollama gateway)
+        if self.base_url:
+            kwargs['api_base'] = self.base_url
 
         try:
-            parsed = _json.loads(body)
-            content = parsed['choices'][0]['message']['content']
-            result_obj = _json.loads(content)
+            resp = llm_completion(**kwargs)
+            # LiteLLM returns OpenAI-format responses
+            content = resp['choices'][0]['message']['content']
+            result_obj = json.loads(content)
+
             cat = result_obj.get('category_slug')
-            if cat not in allowed_slugs and cat != 'other':
-                cat = None
             conf = float(result_obj.get('confidence', 0.0))
             reasons = result_obj.get('reasons', '')
             suggestions = result_obj.get('suggestions', [])
+            if cat not in allowed_slugs and cat != 'other':
+                cat = None
             undecided = cat is None or conf < self.min_conf
-            return _ClassificationResult(category_slug=cat, confidence=conf, reasons=reasons, suggestions=suggestions, undecided=undecided)
+            return _ClassificationResult(
+                category_slug=cat, confidence=conf, reasons=reasons, suggestions=suggestions, undecided=undecided
+            )
+        except Exception as e:
+            return _ClassificationResult(category_slug=None, confidence=0.0, reasons=str(e), suggestions=[], undecided=True)
+
+    def _ensure_provider_env(self) -> None:
+        """Ensure standard env vars for providers are populated from configured mapping if needed."""
+        try:
+            # Map provider -> standard env var name used by LiteLLM
+            std_env = {
+                'openai': 'OPENAI_API_KEY',
+                'anthropic': 'ANTHROPIC_API_KEY',
+                'groq': 'GROQ_API_KEY',
+            }
+            std_name = std_env.get(self.provider)
+            if not std_name:
+                return
+            custom_env_var = (self.api_keys or {}).get(self.provider)
+            if custom_env_var and not os.environ.get(std_name):
+                val = os.environ.get(custom_env_var)
+                if val:
+                    os.environ[std_name] = val
         except Exception:
-            return _ClassificationResult(category_slug=None, confidence=0.0, reasons='Parse error', suggestions=[], undecided=True)
+            # Ignore env setup failures silently
+            pass
