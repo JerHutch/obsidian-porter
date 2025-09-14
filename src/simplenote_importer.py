@@ -66,8 +66,12 @@ class SimpleNoteImporter:
             metadata_map = {}
             if self.metadata_parser:
                 print("Step 1: Parsing metadata from JSON...")
-                metadata_map = self.metadata_parser.parse()
-                print(f"Parsed metadata for {len(metadata_map)} notes")
+                try:
+                    metadata_map = self.metadata_parser.parse()
+                    print(f"Parsed metadata for {len(metadata_map)} notes")
+                except Exception as e:
+                    print(f"Warning: Failed to parse JSON metadata ({e}). Continuing without metadata.")
+                    metadata_map = {}
             else:
                 print("Step 1: Skipping metadata parsing (no JSON file provided)")
             print()
@@ -90,7 +94,12 @@ class SimpleNoteImporter:
                 
                 for note in notes:
                     original_filename = note.get('filename', '')
+                    # Try to get metadata by original filename; fallback to title-based key
                     original_metadata = metadata_map.get(original_filename, {})
+                    if not original_metadata:
+                        alt_key = self._derive_title_based_filename(note.get('content', ''))
+                        if alt_key:
+                            original_metadata = metadata_map.get(alt_key, {})
                     
                     # Create processing context
                     context = {
@@ -183,9 +192,9 @@ class SimpleNoteImporter:
     
     def _setup_editor_pipeline(self) -> EditorPipeline:
         """Setup editor pipeline with configured processors"""
-        from src.editor_pipeline import EditorPipeline
-        # Import at module level for patching in tests; keep local reference here
-        from src.pipelines import TagInjector, FolderOrganizer, ContentTransformer, NoteSplitter
+        # If already created, return existing to avoid duplicate processor instantiation (test-friendly)
+        if getattr(self, 'editor_pipeline', None):
+            return self.editor_pipeline
         
         # Lazily import CategoryClassifier to avoid circular imports
         try:
@@ -203,7 +212,7 @@ class SimpleNoteImporter:
         if self.config.enable_auto_tagging:
             # Pass custom tag rules if configured, otherwise empty dict
             tag_rules = self.config.custom_tag_rules if self.config.custom_tag_rules else {}
-            tag_injector = TagInjector(tag_rules=tag_rules, propagate_category_tag=getattr(self.config, 'propagate_category_tag', True))
+            tag_injector = TagInjector(tag_rules=tag_rules)
             pipeline.add_processor(tag_injector)
         
         if self.config.enable_folder_organization:
@@ -235,6 +244,27 @@ class SimpleNoteImporter:
             pipeline.add_processor(note_splitter)
         
         return pipeline
+
+    def _derive_title_based_filename(self, content: str) -> Optional[str]:
+        """Derive a metadata filename key from the first line of content.
+        Mirrors MetadataParser filename generation logic.
+        """
+        if not content:
+            return None
+        lines = content.strip().split('\n')
+        if not lines:
+            return None
+        first_line = lines[0].strip()
+        if first_line.startswith('#'):
+            first_line = first_line.lstrip('# ').strip()
+        if not first_line:
+            return None
+        # Sanitize like MetadataParser._sanitize_filename
+        invalid_chars = '<>:"/\\|?*'
+        for ch in invalid_chars:
+            first_line = first_line.replace(ch, '_')
+        first_line = first_line.strip()[:100]
+        return f"{first_line if first_line else 'untitled'}.txt"
 
 
 def main():
