@@ -108,10 +108,10 @@ python import.py --config config/my_settings.yaml --notes data --json data/sourc
 ```bash
 # The project comes with a pre-configured virtual environment
 # Activate it (Windows):
-obsidian-porter\Scripts\activate
+venv\Scripts\activate
 
 # Or use directly:
-obsidian-porter/Scripts/python import.py --help
+venv/Scripts/python import.py --help
 ```
 
 ## Testing

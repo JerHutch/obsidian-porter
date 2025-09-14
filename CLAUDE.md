@@ -81,6 +81,14 @@ obsidian-porter/Scripts/python -m pytest -v
 obsidian-porter/Scripts/python -m pytest -x
 ```
 
+### Docs maintenance checklist
+- Update README Features and Usage when adding new capabilities (e.g., LLM-based categorization)
+- Update or add docs in docs/ (guides, how-tos, feature pages like docs/llm-categorization.md)
+- Add or update sample configs under config/ (do not overwrite existing samples unless necessary)
+- Verify CLI --help reflects new flags and options
+- Ensure .gitignore includes cache directories (e.g., .cache/)
+- Add/update tests to cover new config fields and documented usage examples
+
 #### Testing Guidelines
 - **Always write tests** for new features and bug fixes
 - **Update tests** when refactoring existing code

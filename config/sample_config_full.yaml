@@ -23,7 +23,7 @@ enable_note_splitting: false
 # This category may be propagated to tags and used to drive folder mapping.
 # See docs/llm-categorization.md for details.
 
-enable_llm_categorization: false
+enable_llm_categorization: true
 
 # Provider to use: openai | anthropic | ollama | vertex | groq
 llm_provider: openai
@@ -96,9 +96,6 @@ categories:
   - name: Role-playing games
     slug: role-playing-games
     description: "Tabletop RPGs, characters, campaigns, rules."
-  - name: Cisco
-    slug: cisco
-    description: "Networking/Cisco notes, configs, commands."
   - name: Other
     slug: other
     description: "Fallback category for low-confidence or uncategorized notes."
@@ -118,18 +115,18 @@ create_index_files: false
 # Map category/tag slugs to specific folders (overrides defaults)
 custom_folder_rules:
   recipes: cooking
-  gaming: entertainment/games
-  music: media/music
+  gaming: games
+  music: music
 
 # -----------------------------
 # Tagging Settings
 # -----------------------------
 # Regular-expression-based rules mapping to tags to inject.
 # custom_tag_rules is used by TagInjector in the current implementation.
-custom_tag_rules:
-  "cocktail|drink|recipe": ["recipes", "drinks"]
-  "gaming|game|play": ["gaming"]
-  "music|song|album": ["music"]
+# custom_tag_rules:
+#   "cocktail|drink|recipe": ["recipes", "drinks"]
+#   "gaming|game|play": ["gaming"]
+#   "music|song|album": ["music"]
 
 # Optionally supply auto_tag_rules; these are available for future/alternate tag processors.
 auto_tag_rules: {}
