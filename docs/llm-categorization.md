@@ -51,6 +51,7 @@ When enable_llm_categorization=true, the processors run in this order:
 - Uses provider-specific client (OpenAI first) to classify.
 - Confidence threshold (llm_min_confidence) controls assignment vs undecided.
 - Cache (JSONL) is used to avoid repeated calls when enabled.
+- You can clear the cache at startup using the `--clear-llm-cache` CLI flag.
 - Diagnostics stored in metadata (prefixed with _category_*) are for internal use.
 
 ## FolderOrganizer integration

@@ -5,6 +5,7 @@ Phase 2: Enhanced with editor pipeline and configuration support
 """
 
 import sys
+import os
 import argparse
 from pathlib import Path
 from typing import Optional
@@ -335,6 +336,7 @@ Examples:
     parser.add_argument('--llm-timeout', type=int, help='Timeout (seconds) for LLM requests')
     parser.add_argument('--llm-concurrency', type=int, help='Concurrency level for LLM requests')
     parser.add_argument('--llm-base-url', type=str, help='Base URL for OpenAI-compatible endpoints (e.g., Ollama)')
+    parser.add_argument('--clear-llm-cache', action='store_true', help='Delete LLM cache file before processing')
     
     parser.add_argument(
         '--config',
@@ -389,6 +391,18 @@ Examples:
         config.llm_concurrency = args.llm_concurrency
     if args.llm_base_url:
         config.llm_base_url = args.llm_base_url
+
+    # Optional: clear LLM cache before processing
+    if getattr(args, 'clear_llm_cache', False):
+        cache_path = Path(getattr(config, 'llm_cache_path', '.cache/llm_category.jsonl'))
+        try:
+            if cache_path.exists():
+                cache_path.unlink()
+                print(f"Cleared LLM cache: {cache_path}")
+            else:
+                print(f"No LLM cache to clear at: {cache_path}")
+        except Exception as e:
+            print(f"Warning: Could not clear LLM cache at {cache_path}: {e}")
     
     # Validate configuration
     if config:

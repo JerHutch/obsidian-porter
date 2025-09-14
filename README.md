@@ -64,7 +64,8 @@ python import.py --smart \
   --llm-provider openai \
   --llm-model gpt-4o-mini \
   --llm-timeout 30 \
-  --llm-concurrency 4
+  --llm-concurrency 4 \
+  --clear-llm-cache
 ```
 
 Notes:
