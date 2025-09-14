@@ -1,0 +1,31 @@
+LLM Prompt Version: {{llm_prompt_version}}
+
+You are a JSON-only classifier. Read the note text and respond with a single JSON object. Do not include any extra text.
+
+Allowed primary category slugs (choose exactly one or 'other' for primary):
+{{allowed_slugs}}
+
+Category descriptions:
+{{descriptions}}
+
+Instructions:
+- Choose primary category_slug only from the allowed list or 'other'. Never invent a new slug for the primary category.
+- Provide confidence between 0 and 1 (float). Aim to reflect your certainty.
+- Provide a brief reasons string.
+- Provide suggestions: a single array of alternative categories. These MAY be free-form and are NOT limited to the allowed list. Limit to at most {{suggestions_count}} suggestions. Free-form suggestions allowed: {{allow_freeform_suggestions}}.
+- Tags: If {{suggest_tags}} is true, include an array of topical tags (not prefixed with '#') that describe the note. Limit to at most {{tags_max_count}} items. Tags may be free-form.
+- Return only valid JSON; no markdown.
+
+Respond as JSON with this schema:
+{
+  "category_slug": "one-of-allowed-or-other-or-null",
+  "confidence": 0.0,
+  "reasons": "short explanation",
+  "suggestions": ["free form", "or from allowed", "..."],
+  "tags": ["topic-1", "topic 2", "etc"]
+}
+
+Minimum confidence threshold for assignment: {{min_confidence}}
+
+Note text (truncated):
+{{text}}

@@ -31,8 +31,8 @@ Successfully implemented enhanced processing with:
 ### New: LLM-based Note Categorization (Phase 3)
 - Assign a single primary category to each note using a configurable Large Language Model (LLM)
 - Category is stored in metadata as `category`, can be propagated as a tag, and preferred by Folder Organizer
-- Supports providers: openai, anthropic, ollama (OpenAI-compatible), vertex, groq
-- Caching, confidence thresholds, suggestions policy, and token controls (head/tail sampling)
+- Powered by LiteLLM: supports providers like openai, anthropic, ollama (OpenAI-compatible), vertex, groq
+- Caching, confidence thresholds, suggestions policy, lightweight progress logs, and token controls (head/tail sampling)
 - See docs/llm-categorization.md and the full sample config at config/sample_config_full.yaml
 
 ## Usage
@@ -64,12 +64,15 @@ python import.py --smart \
   --llm-provider openai \
   --llm-model gpt-4o-mini \
   --llm-timeout 30 \
-  --llm-concurrency 4
+  --llm-concurrency 4 \
+  --clear-llm-cache
 ```
 
 Notes:
-- Providers: openai | anthropic | ollama | vertex | groq
-- API keys via env vars configured in your YAML (see config/sample_config_full.yaml). Do not store secrets in files.
+- Providers: openai | anthropic | ollama | vertex | groq (via LiteLLM)
+- Models can be specified as provider-prefixed (e.g., `openai/gpt-4o-mini`, `anthropic/claude-3-haiku`) or as a plain model name with `--llm-provider` determining the prefix.
+- API keys: use standard env vars (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GROQ_API_KEY`, etc.) or map your custom names via `llm_api_keys` in YAML. Do not store secrets in files.
+- `--llm-base-url` maps to LiteLLM `api_base` (useful for OpenAI-compatible local gateways like Ollama).
 - Results are cached to .cache/llm_category.jsonl when enabled. .cache/ is git-ignored.
 
 ### Basic Usage

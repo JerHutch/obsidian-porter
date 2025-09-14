@@ -20,7 +20,7 @@ def test_category_classifier_confident_assignment(monkeypatch):
     clf = CategoryClassifier(config=cfg)
 
     def fake_provider(text, categories):
-        return _ClassificationResult(category_slug='house', confidence=0.95, reasons='home', suggestions=[])
+        return _ClassificationResult(category_slug='house', confidence=0.95, reasons='home', suggestions=[], tags=[])
 
     monkeypatch.setattr(clf, "_classify_with_provider", fake_provider)
 
@@ -39,7 +39,7 @@ def test_category_classifier_low_confidence_other_policy(monkeypatch):
     clf = CategoryClassifier(config=cfg)
 
     def fake_provider(text, categories):
-        return _ClassificationResult(category_slug='music', confidence=0.5, reasons='unsure', suggestions=['music'])
+        return _ClassificationResult(category_slug='music', confidence=0.5, reasons='unsure', suggestions=['music'], tags=[])
 
     monkeypatch.setattr(clf, "_classify_with_provider", fake_provider)
 
@@ -57,7 +57,7 @@ def test_category_classifier_suggest_policy(monkeypatch):
     clf = CategoryClassifier(config=cfg)
 
     def fake_provider(text, categories):
-        return _ClassificationResult(category_slug=None, confidence=0.4, reasons='ambiguous', suggestions=['house', 'recipes', 'gaming'])
+        return _ClassificationResult(category_slug=None, confidence=0.4, reasons='ambiguous', suggestions=['house', 'recipes', 'gaming'], tags=[])
 
     monkeypatch.setattr(clf, "_classify_with_provider", fake_provider)
 
@@ -77,7 +77,7 @@ def test_category_classifier_truncation(monkeypatch):
 
     def fake_provider(text, categories):
         captured['text'] = text
-        return _ClassificationResult(category_slug=None, confidence=0.0, reasons='', suggestions=[], undecided=True)
+        return _ClassificationResult(category_slug=None, confidence=0.0, reasons='', suggestions=[], tags=[], undecided=True)
 
     monkeypatch.setattr(clf, "_classify_with_provider", fake_provider)
 

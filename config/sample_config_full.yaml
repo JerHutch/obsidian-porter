@@ -14,7 +14,7 @@ enable_content_transformation: true
 # Phase 3 Feature Toggles
 # -----------------------------
 # Enable advanced features like note splitting
-enable_note_splitting: false
+enable_note_splitting: true
 
 # -----------------------------
 # LLM-based Categorization
@@ -23,7 +23,7 @@ enable_note_splitting: false
 # This category may be propagated to tags and used to drive folder mapping.
 # See docs/llm-categorization.md for details.
 
-enable_llm_categorization: true
+enable_llm_categorization: false
 
 # Provider to use: openai | anthropic | ollama | vertex | groq
 llm_provider: openai
@@ -34,7 +34,7 @@ llm_provider: openai
 # - Groq: mixtral-8x7b, llama3-* (check Groq docs)
 # - Vertex: see Vertex AI model names
 # - Ollama: name of local model served via OpenAI-compatible endpoint
-llm_model: gpt-4o-mini
+llm_model: gpt-5-mini
 
 # Provider -> Environment Variable name containing the API key.
 # Do NOT store secrets in files. Ensure your environment exports these variables before running.
@@ -66,11 +66,20 @@ llm_tail_chars: 500            # And the end; helps short notes and summaries
 # Policy when the model is uncertain (below confidence threshold):
 # - other: assign the 'other' category
 # - suggest: leave category unset, but attach _category_suggestions with up to suggestions_count entries
-undecided_policy: other
+undecided_policy: suggest
 suggestions_count: 3
 
 # If true, ensure the chosen category slug is present in the note's tags
 propagate_category_tag: true
+
+# LLM Prompt Template and Suggestions
+# If provided, the classifier will load and render this template with placeholders.
+llm_prompt_template_path: null  # e.g., config/prompts/default_classifier_prompt.txt
+llm_prompt_version: v1          # Changing this invalidates cache keys
+llm_allow_freeform_suggestions: true   # Allow suggestions beyond configured slugs
+llm_suggest_tags: true                  # Ask LLM to return tags for the note
+llm_tags_max_count: 5                   # Cap on number of LLM tags
+llm_tags_min_count: 0                   # Minimum desired (informational)
 
 # Complete set of available categories for the classifier.
 # Include a fallback 'other' slug.
@@ -96,6 +105,12 @@ categories:
   - name: Role-playing games
     slug: role-playing-games
     description: "Tabletop RPGs, characters, campaigns, rules."
+  - name: Movies
+    slug: movies
+    description: "Lists of movies, titles of movies"
+  - name: Anime
+    slug: anime
+    description: "Japanese anime tv shows and movies"
   - name: Other
     slug: other
     description: "Fallback category for low-confidence or uncategorized notes."
