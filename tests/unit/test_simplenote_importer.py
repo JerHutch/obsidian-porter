@@ -499,7 +499,6 @@ class TestSimpleNoteImporter:
             
             mock_content_transformer = Mock()
             mock_content_transformer.transformation_rules = {}
-            mock_content_transformer.transformation_rules.update = Mock()
             mock_content_transformer_class.return_value = mock_content_transformer
             
             importer = SimpleNoteImporter(Path("/tmp"), config=config)
@@ -508,6 +507,9 @@ class TestSimpleNoteImporter:
             mock_tag_injector_class.assert_called_with(tag_rules=custom_tag_rules)
             # Folder rules should be merged
             assert all(item in mock_folder_organizer.organization_rules.items() for item in custom_folder_rules.items())
+            # Content transformer rules should be merged
+            for k, v in custom_transformations.items():
+                assert mock_content_transformer.transformation_rules.get(k) == v
             mock_content_transformer.transformation_rules.update.assert_called_with(custom_transformations)
     
     def test_main_function_imports(self):
