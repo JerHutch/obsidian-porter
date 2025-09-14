@@ -63,9 +63,22 @@ When enable_llm_categorization=true, the processors run in this order:
 - Continues to apply regex-based tag rules in addition to category propagation.
 
 ## Providers
-- OpenAI is supported initially via the chat/completions API and JSON mode.
-- Other providers (Anthropic, Ollama, etc.) can be added behind the same abstraction.
-- API keys are read from environment variables (names configured via ImportConfig.llm_api_keys).
+- Uses the LiteLLM Python SDK to call multiple providers via a unified interface.
+- Supported providers include OpenAI, Anthropic, Ollama (OpenAI-compatible), Vertex AI, Groq, and more via LiteLLM.
+- Model identifiers can be provided as either `<provider>/<model>` (e.g., `openai/gpt-4o-mini`, `anthropic/claude-3-haiku`) or as a plain model name with `llm_provider` indicating the provider. If `llm_model` contains a `/`, it is used as-is; otherwise the provider prefix is derived from `llm_provider`.
+- API keys are read from standard environment variables (e.g., `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GROQ_API_KEY`). If you prefer custom env var names, configure `ImportConfig.llm_api_keys` and the importer will map them to the standard variables at runtime.
+
+## Implementation (LiteLLM)
+- The classifier builds OpenAI-format messages and calls `litellm.completion()`.
+- Provider prefix mapping used internally: `openai`, `anthropic`, `ollama`, `vertex_ai`, `groq`.
+- `llm_base_url` is passed to LiteLLM as `api_base` (useful for OpenAI-compatible endpoints like a local Ollama gateway).
+- Exceptions are mapped to OpenAI-style errors by LiteLLM; existing error handling continues to work.
+
+## Progress Output
+- During classification, the importer prints a lightweight progress line per note:
+  - `[LLM] cache: <filename>` for cache hits
+  - `[LLM] request: <filename>` when making a provider call
+- This helps track long-running classification phases without changing existing CLI flags or behavior.
 
 ## Privacy & Testing
 - No secrets are written to disk; only cache of classification outputs when enabled.
