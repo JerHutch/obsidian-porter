@@ -9,6 +9,7 @@ import os
 from typing import Dict, Any, List, Optional, Tuple
 from dataclasses import dataclass
 import re
+import threading
 
 from .base_processor import ContentProcessor
 from litellm import completion as llm_completion
@@ -48,6 +49,8 @@ class CategoryClassifier(ContentProcessor):
         self.suggest_tags = getattr(config, 'llm_suggest_tags', True)
         self.tags_max = getattr(config, 'llm_tags_max_count', 5)
         self.tags_min = getattr(config, 'llm_tags_min_count', 0)
+        # Cache write lock for thread-safety when running concurrently
+        self._cache_lock = threading.Lock()
 
         # Ensure cache directory exists if caching is enabled
         if self.cache_enabled:
@@ -173,18 +176,19 @@ class CategoryClassifier(ContentProcessor):
         if not self.cache_enabled:
             return
         try:
-            with open(self.cache_path, 'a', encoding='utf-8') as f:
-                f.write(json.dumps({
-                    'key': key,
-                    'result': {
-                        'category_slug': result.category_slug,
-                        'confidence': result.confidence,
-                        'reasons': result.reasons,
-                        'suggestions': result.suggestions,
-                        'undecided': result.undecided,
-                        'tags': getattr(result, 'tags', []),
-                    }
-                }) + "\n")
+            with self._cache_lock:
+                with open(self.cache_path, 'a', encoding='utf-8') as f:
+                    f.write(json.dumps({
+                        'key': key,
+                        'result': {
+                            'category_slug': result.category_slug,
+                            'confidence': result.confidence,
+                            'reasons': result.reasons,
+                            'suggestions': result.suggestions,
+                            'undecided': result.undecided,
+                            'tags': getattr(result, 'tags', []),
+                        }
+                    }) + "\n")
         except Exception:
             pass
 
@@ -266,7 +270,7 @@ class CategoryClassifier(ContentProcessor):
             )
             return res
         except Exception as e:
-            return _ClassificationResult(category_slug=None, confidence=0.0, reasons=str(e), suggestions=[], undecided=True)
+            return _ClassificationResult(category_slug=None, confidence=0.0, reasons=str(e), suggestions=[], tags=[], undecided=True)
 
     def _ensure_provider_env(self) -> None:
         """Ensure standard env vars for providers are populated from configured mapping if needed."""

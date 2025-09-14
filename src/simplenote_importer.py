@@ -46,6 +46,8 @@ class SimpleNoteImporter:
         
         # Initialize Phase 2 components
         self.editor_pipeline = None
+        # Internal flag: perform LLM category pre-pass concurrently
+        self._llm_prepass = False
         if self.config.enable_editor_pipeline:
             self.editor_pipeline = self._setup_editor_pipeline()
         
@@ -92,6 +94,45 @@ class SimpleNoteImporter:
                 print("No notes found to process!")
                 return {'success': False, 'total_files': 0, 'processed_files': 0, 'errors': 0}
             
+            # Optional: LLM pre-pass (concurrent) if configured
+            if getattr(self, '_llm_prepass', False):
+                try:
+                    from src.pipelines.category_classifier import CategoryClassifier
+                except Exception:
+                    CategoryClassifier = None
+                if CategoryClassifier is not None:
+                    print("Step 3: LLM categorization pre-pass (concurrency={})...".format(getattr(self.config, 'llm_concurrency', 1)))
+                    # Build contexts and do a concurrent pass for category classification only
+                    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+                    def classify_one(note_obj):
+                        filename = note_obj.get('filename', '')
+                        original_metadata = metadata_map.get(filename, {})
+                        context = {
+                            'filename': filename,
+                            'original_path': note_obj.get('original_path'),
+                            'phase': 3 if self.config.enable_note_splitting else 2
+                        }
+                        clf = CategoryClassifier(config=self.config)
+                        _, updated_meta = clf.process(note_obj.get('content', ''), original_metadata, context)
+                        return filename, updated_meta
+
+                    max_workers = max(1, int(getattr(self.config, 'llm_concurrency', 1)))
+                    with ThreadPoolExecutor(max_workers=max_workers) as ex:
+                        futures = {ex.submit(classify_one, n): n for n in notes}
+                        done = 0
+                        for fut in as_completed(futures):
+                            try:
+                                filename, updated_meta = fut.result()
+                                metadata_map[filename] = updated_meta
+                            except Exception as e:
+                                print(f"Warning: LLM pre-pass failed for a note: {e}")
+                            finally:
+                                done += 1
+                                if done % 10 == 0 or done == len(futures):
+                                    print(f"[LLM-PREPASS] {done}/{len(futures)}")
+                    print("LLM pre-pass completed.\n")
+
             # Step 3: Apply editor pipeline (Phase 2+3)
             if self.editor_pipeline:
                 print("Step 3: Applying editor pipeline transformations...")
@@ -210,9 +251,13 @@ class SimpleNoteImporter:
         
         pipeline = EditorPipeline()
         
-        # LLM category classifier first if enabled
+        # LLM category classifier first if enabled; if llm_concurrency>1, we'll run a pre-pass instead
         if getattr(self.config, 'enable_llm_categorization', False) and CategoryClassifier is not None:
-            pipeline.add_processor(CategoryClassifier(config=self.config))
+            if int(getattr(self.config, 'llm_concurrency', 1)) > 1:
+                # Use a concurrent pre-pass, do not add to pipeline
+                self._llm_prepass = True
+            else:
+                pipeline.add_processor(CategoryClassifier(config=self.config))
         
         # Add processors based on configuration
         if self.config.enable_auto_tagging:
