@@ -23,7 +23,7 @@ enable_note_splitting: false
 # This category may be propagated to tags and used to drive folder mapping.
 # See docs/llm-categorization.md for details.
 
-enable_llm_categorization: true
+enable_llm_categorization: false
 
 # Provider to use: openai | anthropic | ollama | vertex | groq
 llm_provider: openai

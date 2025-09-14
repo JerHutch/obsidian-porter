@@ -63,6 +63,15 @@ class CategoryClassifier(ContentProcessor):
         cache_key = self._cache_key(trimmed, allowed_slugs)
         result = self._load_from_cache(cache_key)
 
+        # Progress output (non-disruptive)
+        fname = ''
+        if isinstance(context, dict):
+            fname = (context.get('filename') or '')
+        if result is not None:
+            print(f"[LLM] cache: {fname}")
+        else:
+            print(f"[LLM] request: {fname}")
+
         if result is None:
             # Call provider
             result = self._classify_with_provider(trimmed, categories)
