@@ -40,6 +40,9 @@ class ImportConfig:
     undecided_policy: str = "suggest"  # other | suggest (default: suggest)
     suggestions_count: int = 3
     propagate_category_tag: bool = True
+    # New propagation controls
+    propagate_suggested_categories_when_other: bool = True  # If final category is 'other', add suggestions as tags
+    propagate_llm_suggested_tags: bool = True  # Merge llm_tags into tags
     # Prompting and suggestions/tags
     llm_prompt_template_path: Optional[str] = None
     llm_prompt_version: str = "v1"
@@ -236,6 +239,8 @@ class ConfigManager:
             'undecided_policy': 'suggest',  # other | suggest
             'suggestions_count': 3,
             'propagate_category_tag': True,
+            'propagate_suggested_categories_when_other': True,
+            'propagate_llm_suggested_tags': True,
             '# LLM Prompt and Suggestions': None,
             'llm_prompt_template_path': None,  # e.g., 'config/prompts/default_classifier_prompt.txt'
             'llm_prompt_version': 'v1',

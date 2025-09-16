@@ -27,6 +27,8 @@ New fields (defaults shown):
 - undecided_policy: other | suggest
 - suggestions_count: 3
 - propagate_category_tag: true
+- propagate_suggested_categories_when_other: true  (if final category is 'other', add suggestions as tags)
+- propagate_llm_suggested_tags: true  (merge llm_tags into tags)
 - llm_prompt_template_path: null (optional path to a prompt template with placeholders)
 - llm_prompt_version: v1 (changing this invalidates cache keys)
 - llm_allow_freeform_suggestions: true (allow suggestions beyond configured slugs)
@@ -67,8 +69,10 @@ When enable_llm_categorization=true, the processors run in this order:
 
 ## TagInjector integration
 - If propagate_category_tag=true and a category is chosen, ensures the category slug is present in tags.
-- Continues to apply regex-based tag rules in addition to category propagation.
-- LLM-generated tags are stored separately in metadata.llm_tags and are normalized to kebab-case. They are not merged automatically into tags.
+- Continues to apply regex-based auto-tagging per existing rules.
+- LLM-generated tags are stored in metadata.llm_tags and are normalized to kebab-case.
+- If propagate_llm_suggested_tags=true, llm_tags are also merged into metadata.tags.
+- If propagate_suggested_categories_when_other=true and the final category is 'other', category suggestions are merged into metadata.tags.
 
 ## Providers
 - Uses the LiteLLM Python SDK to call multiple providers via a unified interface.
@@ -92,6 +96,9 @@ When enable_llm_categorization=true, the processors run in this order:
 - No secrets are written to disk; only cache of classification outputs when enabled.
 - Tests should mock any network calls and inject a fake client.
 - To avoid committing caches, .cache/ is in .gitignore.
+- When undecided policy is 'other', you can still propagate LLM signals via tags by enabling:
+  - propagate_suggested_categories_when_other
+  - propagate_llm_suggested_tags
 
 ## Examples
 Enable LLM with OpenAI and a local endpoint (e.g., Ollama-compatible gateway):
