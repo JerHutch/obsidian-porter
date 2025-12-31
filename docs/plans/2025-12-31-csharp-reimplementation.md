@@ -2,13 +2,13 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Re-implement the Python SimpleNote-to-Obsidian importer in C# using .NET 8 with modern C# syntax and patterns.
+**Goal:** Re-implement the Python SimpleNote-to-Obsidian importer in C# using .NET 9 with modern C# syntax and patterns.
 
 **Architecture:** Maintain the existing 4-step pipeline architecture (MetadataParser → ContentProcessor → EditorPipeline → ObsidianFormatter) but use idiomatic C# patterns. Use dependency injection (Microsoft.Extensions.DependencyInjection), primary constructors, record types for DTOs, file-scoped namespaces, and nullable reference types.
 
 **Tech Stack:**
-- .NET 8 SDK
-- C# 12 (primary constructors, collection expressions, file-scoped namespaces)
+- .NET 9 SDK
+- C# 13 (primary constructors, collection expressions, file-scoped namespaces)
 - System.CommandLine (CLI parsing)
 - YamlDotNet (YAML configuration)
 - NUnit (testing framework)
@@ -69,9 +69,9 @@ TestResults/
 ```bash
 cd /Users/jhutchinson/Code/Tiberius/obsidian-porter
 dotnet new sln -n ObsidianPorter -o src
-dotnet new console -n ObsidianPorter.Cli -o src/ObsidianPorter.Cli -f net8.0
-dotnet new classlib -n ObsidianPorter.Core -o src/ObsidianPorter.Core -f net8.0
-dotnet new nunit -n ObsidianPorter.Tests -o src/ObsidianPorter.Tests -f net8.0
+dotnet new console -n ObsidianPorter.Cli -o src/ObsidianPorter.Cli -f net9.0
+dotnet new classlib -n ObsidianPorter.Core -o src/ObsidianPorter.Core -f net9.0
+dotnet new nunit -n ObsidianPorter.Tests -o src/ObsidianPorter.Tests -f net9.0
 dotnet sln src/ObsidianPorter.sln add src/ObsidianPorter.Cli/ObsidianPorter.Cli.csproj
 dotnet sln src/ObsidianPorter.sln add src/ObsidianPorter.Core/ObsidianPorter.Core.csproj
 dotnet sln src/ObsidianPorter.sln add src/ObsidianPorter.Tests/ObsidianPorter.Tests.csproj
@@ -97,7 +97,7 @@ dotnet add package YamlDotNet --version 15.1.0
 
 cd ../ObsidianPorter.Core
 dotnet add package YamlDotNet --version 15.1.0
-dotnet add package System.Text.Json --version 8.0.0
+dotnet add package System.Text.Json --version 9.0.0
 
 cd ../ObsidianPorter.Tests
 dotnet add package Shouldly --version 4.2.1
@@ -121,10 +121,10 @@ Create: `/Users/jhutchinson/Code/Tiberius/obsidian-porter/README-CSHARP.md`
 ```markdown
 # SimpleNote to Obsidian Importer (C# Edition)
 
-A .NET 8 tool for converting SimpleNote exports to Obsidian-compatible markdown files.
+A .NET 9 tool for converting SimpleNote exports to Obsidian-compatible markdown files.
 
 ## Requirements
-- .NET 8 SDK
+- .NET 9 SDK
 
 ## Building
 ```bash
@@ -173,10 +173,10 @@ Modify: `src/ObsidianPorter.Core/ObsidianPorter.Core.csproj`
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <LangVersion>12</LangVersion>
+    <LangVersion>13</LangVersion>
   </PropertyGroup>
 </Project>
 ```
