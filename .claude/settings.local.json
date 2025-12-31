@@ -12,7 +12,18 @@
       "Bash(dotnet add:*)",
       "Bash(dotnet remove:*)",
       "Bash(dotnet build:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(dotnet list package:*)",
+      "Bash(git restore:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\ndocs: update C# reimplementation plan to use .NET 9\n\n- Change target framework from .NET 8 to .NET 9\n- Update C# language version from 12 to 13  \n- Update System.Text.Json package from 8.0.0 to 9.0.0\n- Update all dotnet new commands to use net9.0\n- Update README template to reference .NET 9 SDK\n\nThis aligns with the actual implementation which uses .NET 9.\nEOF\n\\)\")",
+      "Bash(test:*)",
+      "Bash(dotnet test:*)",
+      "Bash(dotnet run)",
+      "Bash(grep:*)",
+      "Bash(tree:*)",
+      "Bash(cat:*)",
+      "Bash(git commit:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []
