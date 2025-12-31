@@ -37,9 +37,16 @@ class ImportConfig:
     llm_min_confidence: float = 0.6
     llm_head_chars: int = 2500
     llm_tail_chars: int = 500
-    undecided_policy: str = "other"  # other | suggest
+    undecided_policy: str = "suggest"  # other | suggest (default: suggest)
     suggestions_count: int = 3
     propagate_category_tag: bool = True
+    # Prompting and suggestions/tags
+    llm_prompt_template_path: Optional[str] = None
+    llm_prompt_version: str = "v1"
+    llm_allow_freeform_suggestions: bool = True
+    llm_suggest_tags: bool = True
+    llm_tags_max_count: int = 5
+    llm_tags_min_count: int = 0
     categories: List[Dict[str, str]] = field(default_factory=lambda: [
         {"name": "Cocktails", "slug": "cocktails", "description": "Cocktail recipes, mixed drinks, ingredients, techniques."},
         {"name": "Recipes", "slug": "recipes", "description": "Food recipes, ingredients, cooking instructions."},
@@ -226,9 +233,16 @@ class ConfigManager:
             'llm_min_confidence': 0.6,
             'llm_head_chars': 2500,
             'llm_tail_chars': 500,
-            'undecided_policy': 'other',  # other | suggest
+            'undecided_policy': 'suggest',  # other | suggest
             'suggestions_count': 3,
             'propagate_category_tag': True,
+            '# LLM Prompt and Suggestions': None,
+            'llm_prompt_template_path': None,  # e.g., 'config/prompts/default_classifier_prompt.txt'
+            'llm_prompt_version': 'v1',
+            'llm_allow_freeform_suggestions': True,
+            'llm_suggest_tags': True,
+            'llm_tags_max_count': 5,
+            'llm_tags_min_count': 0,
             'categories': [
                 { 'name': 'Cocktails', 'slug': 'cocktails', 'description': 'Cocktail recipes, mixed drinks, ingredients, techniques.' },
                 { 'name': 'Recipes', 'slug': 'recipes', 'description': 'Food recipes, ingredients, cooking instructions.' },
@@ -336,5 +350,19 @@ class ConfigManager:
                 warnings.append("Duplicate category slugs detected in categories configuration")
             if 'other' not in slugs:
                 warnings.append("Categories should include an 'other' slug for fallback")
+            # Prompt/template and tags bounds validation
+            if getattr(config, 'llm_tags_max_count', 0) < 0:
+                warnings.append("llm_tags_max_count must be >= 0")
+            if getattr(config, 'llm_tags_min_count', 0) < 0:
+                warnings.append("llm_tags_min_count must be >= 0")
+            if getattr(config, 'llm_tags_min_count', 0) > getattr(config, 'llm_tags_max_count', 0):
+                warnings.append("llm_tags_min_count must be <= llm_tags_max_count")
+            p = getattr(config, 'llm_prompt_template_path', None)
+            if p:
+                try:
+                    if not Path(p).exists():
+                        warnings.append(f"llm_prompt_template_path does not exist: {p}")
+                except Exception:
+                    warnings.append(f"Invalid llm_prompt_template_path: {p}")
         
         return warnings

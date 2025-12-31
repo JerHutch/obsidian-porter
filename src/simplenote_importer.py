@@ -5,6 +5,7 @@ Phase 2: Enhanced with editor pipeline and configuration support
 """
 
 import sys
+import os
 import argparse
 from pathlib import Path
 from typing import Optional
@@ -45,6 +46,8 @@ class SimpleNoteImporter:
         
         # Initialize Phase 2 components
         self.editor_pipeline = None
+        # Internal flag: perform LLM category pre-pass concurrently
+        self._llm_prepass = False
         if self.config.enable_editor_pipeline:
             self.editor_pipeline = self._setup_editor_pipeline()
         
@@ -91,6 +94,45 @@ class SimpleNoteImporter:
                 print("No notes found to process!")
                 return {'success': False, 'total_files': 0, 'processed_files': 0, 'errors': 0}
             
+            # Optional: LLM pre-pass (concurrent) if configured
+            if getattr(self, '_llm_prepass', False):
+                try:
+                    from src.pipelines.category_classifier import CategoryClassifier
+                except Exception:
+                    CategoryClassifier = None
+                if CategoryClassifier is not None:
+                    print("Step 3: LLM categorization pre-pass (concurrency={})...".format(getattr(self.config, 'llm_concurrency', 1)))
+                    # Build contexts and do a concurrent pass for category classification only
+                    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+                    def classify_one(note_obj):
+                        filename = note_obj.get('filename', '')
+                        original_metadata = metadata_map.get(filename, {})
+                        context = {
+                            'filename': filename,
+                            'original_path': note_obj.get('original_path'),
+                            'phase': 3 if self.config.enable_note_splitting else 2
+                        }
+                        clf = CategoryClassifier(config=self.config)
+                        _, updated_meta = clf.process(note_obj.get('content', ''), original_metadata, context)
+                        return filename, updated_meta
+
+                    max_workers = max(1, int(getattr(self.config, 'llm_concurrency', 1)))
+                    with ThreadPoolExecutor(max_workers=max_workers) as ex:
+                        futures = {ex.submit(classify_one, n): n for n in notes}
+                        done = 0
+                        for fut in as_completed(futures):
+                            try:
+                                filename, updated_meta = fut.result()
+                                metadata_map[filename] = updated_meta
+                            except Exception as e:
+                                print(f"Warning: LLM pre-pass failed for a note: {e}")
+                            finally:
+                                done += 1
+                                if done % 10 == 0 or done == len(futures):
+                                    print(f"[LLM-PREPASS] {done}/{len(futures)}")
+                    print("LLM pre-pass completed.\n")
+
             # Step 3: Apply editor pipeline (Phase 2+3)
             if self.editor_pipeline:
                 print("Step 3: Applying editor pipeline transformations...")
@@ -209,9 +251,13 @@ class SimpleNoteImporter:
         
         pipeline = EditorPipeline()
         
-        # LLM category classifier first if enabled
+        # LLM category classifier first if enabled; if llm_concurrency>1, we'll run a pre-pass instead
         if getattr(self.config, 'enable_llm_categorization', False) and CategoryClassifier is not None:
-            pipeline.add_processor(CategoryClassifier(config=self.config))
+            if int(getattr(self.config, 'llm_concurrency', 1)) > 1:
+                # Use a concurrent pre-pass, do not add to pipeline
+                self._llm_prepass = True
+            else:
+                pipeline.add_processor(CategoryClassifier(config=self.config))
         
         # Add processors based on configuration
         if self.config.enable_auto_tagging:
@@ -335,6 +381,16 @@ Examples:
     parser.add_argument('--llm-timeout', type=int, help='Timeout (seconds) for LLM requests')
     parser.add_argument('--llm-concurrency', type=int, help='Concurrency level for LLM requests')
     parser.add_argument('--llm-base-url', type=str, help='Base URL for OpenAI-compatible endpoints (e.g., Ollama)')
+    parser.add_argument('--clear-llm-cache', action='store_true', help='Delete LLM cache file before processing')
+
+    # Prompt and suggestions/tags flags
+    parser.add_argument('--llm-prompt-template', type=Path, help='Path to LLM prompt template file with placeholders')
+    parser.add_argument('--llm-prompt-version', type=str, help='Prompt version string to force cache invalidation on changes')
+    parser.add_argument('--llm-allow-freeform-suggestions', action='store_true', help='Allow free-form suggestions beyond configured category slugs')
+    parser.add_argument('--llm-suggest-tags', action='store_true', help='Ask the LLM to return tags (stored in metadata.llm_tags)')
+    parser.add_argument('--llm-tags-max', type=int, help='Maximum number of LLM-generated tags to keep')
+    parser.add_argument('--llm-tags-min', type=int, help='Minimum desired number of LLM-generated tags (informational)')
+    parser.add_argument('--llm-suggestions-count', type=int, help='Cap the number of category suggestions returned')
     
     parser.add_argument(
         '--config',
@@ -389,6 +445,32 @@ Examples:
         config.llm_concurrency = args.llm_concurrency
     if args.llm_base_url:
         config.llm_base_url = args.llm_base_url
+    if args.llm_prompt_template:
+        config.llm_prompt_template_path = str(args.llm_prompt_template)
+    if args.llm_prompt_version:
+        config.llm_prompt_version = args.llm_prompt_version
+    if args.llm_allow_freeform_suggestions:
+        config.llm_allow_freeform_suggestions = True
+    if args.llm_suggest_tags:
+        config.llm_suggest_tags = True
+    if args.llm_tags_max is not None:
+        config.llm_tags_max_count = args.llm_tags_max
+    if args.llm_tags_min is not None:
+        config.llm_tags_min_count = args.llm_tags_min
+    if args.llm_suggestions_count is not None:
+        config.suggestions_count = args.llm_suggestions_count
+
+    # Optional: clear LLM cache before processing
+    if getattr(args, 'clear_llm_cache', False):
+        cache_path = Path(getattr(config, 'llm_cache_path', '.cache/llm_category.jsonl'))
+        try:
+            if cache_path.exists():
+                cache_path.unlink()
+                print(f"Cleared LLM cache: {cache_path}")
+            else:
+                print(f"No LLM cache to clear at: {cache_path}")
+        except Exception as e:
+            print(f"Warning: Could not clear LLM cache at {cache_path}: {e}")
     
     # Validate configuration
     if config:
@@ -405,6 +487,10 @@ Examples:
     if args.json and not args.json.exists():
         print(f"Error: JSON file does not exist: {args.json}")
         sys.exit(1)
+
+    # Ensure a sensible default model for OpenAI if not explicitly set
+    if getattr(config, 'enable_llm_categorization', False) and getattr(config, 'llm_provider', 'openai') == 'openai' and not getattr(config, 'llm_model', None):
+        config.llm_model = 'gpt-4o-mini'
     
     # Run import
     importer = SimpleNoteImporter(

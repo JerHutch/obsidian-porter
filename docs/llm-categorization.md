@@ -7,7 +7,7 @@ This document describes the LLM categorization feature that assigns a primary ca
 - The selected category is stored in metadata['category'] and influences:
   - Tagging: optionally adds the category as a tag.
   - Folder organization: preferred mapping derives from the category.
-- If the LLM is uncertain, the policy can either assign 'other' or attach suggestions.
+- If the LLM is uncertain, the policy can either assign 'other' or attach suggestions (default: suggest). Suggestions may be free-form and are not limited to the configured category list.
 
 ## Configuration (ImportConfig)
 New fields (defaults shown):
@@ -27,6 +27,12 @@ New fields (defaults shown):
 - undecided_policy: other | suggest
 - suggestions_count: 3
 - propagate_category_tag: true
+- llm_prompt_template_path: null (optional path to a prompt template with placeholders)
+- llm_prompt_version: v1 (changing this invalidates cache keys)
+- llm_allow_freeform_suggestions: true (allow suggestions beyond configured slugs)
+- llm_suggest_tags: true (ask model to return tags)
+- llm_tags_max_count: 5
+- llm_tags_min_count: 0
 - categories: list of { name, slug, description }, including 'other'
 
 ## CLI Options
@@ -50,7 +56,8 @@ When enable_llm_categorization=true, the processors run in this order:
 - Builds a strict JSON-only prompt including allowed slugs and their descriptions.
 - Uses provider-specific client (OpenAI first) to classify.
 - Confidence threshold (llm_min_confidence) controls assignment vs undecided.
-- Cache (JSONL) is used to avoid repeated calls when enabled.
+- Cache (JSONL) is used to avoid repeated calls when enabled. Cache keys include the prompt version and a hash of the prompt template so changes invalidate cache entries.
+- You can clear the cache at startup using the `--clear-llm-cache` CLI flag.
 - Diagnostics stored in metadata (prefixed with _category_*) are for internal use.
 
 ## FolderOrganizer integration
@@ -61,11 +68,25 @@ When enable_llm_categorization=true, the processors run in this order:
 ## TagInjector integration
 - If propagate_category_tag=true and a category is chosen, ensures the category slug is present in tags.
 - Continues to apply regex-based tag rules in addition to category propagation.
+- LLM-generated tags are stored separately in metadata.llm_tags and are normalized to kebab-case. They are not merged automatically into tags.
 
 ## Providers
-- OpenAI is supported initially via the chat/completions API and JSON mode.
-- Other providers (Anthropic, Ollama, etc.) can be added behind the same abstraction.
-- API keys are read from environment variables (names configured via ImportConfig.llm_api_keys).
+- Uses the LiteLLM Python SDK to call multiple providers via a unified interface.
+- Supported providers include OpenAI, Anthropic, Ollama (OpenAI-compatible), Vertex AI, Groq, and more via LiteLLM.
+- Model identifiers can be provided as either `<provider>/<model>` (e.g., `openai/gpt-4o-mini`, `anthropic/claude-3-haiku`) or as a plain model name with `llm_provider` indicating the provider. If `llm_model` contains a `/`, it is used as-is; otherwise the provider prefix is derived from `llm_provider`.
+- API keys are read from standard environment variables (e.g., `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GROQ_API_KEY`). If you prefer custom env var names, configure `ImportConfig.llm_api_keys` and the importer will map them to the standard variables at runtime.
+
+## Implementation (LiteLLM)
+- The classifier builds OpenAI-format messages and calls `litellm.completion()`.
+- Provider prefix mapping used internally: `openai`, `anthropic`, `ollama`, `vertex_ai`, `groq`.
+- `llm_base_url` is passed to LiteLLM as `api_base` (useful for OpenAI-compatible endpoints like a local Ollama gateway).
+- Exceptions are mapped to OpenAI-style errors by LiteLLM; existing error handling continues to work.
+
+## Progress Output
+- During classification, the importer prints a lightweight progress line per note:
+  - `[LLM] cache: <filename>` for cache hits
+  - `[LLM] request: <filename>` when making a provider call
+- This helps track long-running classification phases without changing existing CLI flags or behavior.
 
 ## Privacy & Testing
 - No secrets are written to disk; only cache of classification outputs when enabled.
