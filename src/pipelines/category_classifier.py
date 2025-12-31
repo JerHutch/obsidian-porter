@@ -49,6 +49,9 @@ class CategoryClassifier(ContentProcessor):
         self.suggest_tags = getattr(config, 'llm_suggest_tags', True)
         self.tags_max = getattr(config, 'llm_tags_max_count', 5)
         self.tags_min = getattr(config, 'llm_tags_min_count', 0)
+        # Propagation controls
+        self.propagate_suggested_categories_when_other = getattr(config, 'propagate_suggested_categories_when_other', True)
+        self.propagate_llm_suggested_tags = getattr(config, 'propagate_llm_suggested_tags', True)
         # Cache write lock for thread-safety when running concurrently
         self._cache_lock = threading.Lock()
 
@@ -93,6 +96,9 @@ class CategoryClassifier(ContentProcessor):
 
         # Apply undecided policy / confidence threshold
         updated = metadata.copy()
+        # Compute suggestions upfront (truncated)
+        suggestions = (result.suggestions or [])[: self.suggestions_count]
+
         if result.category_slug and not result.undecided and result.confidence >= self.min_conf and result.category_slug in allowed_slugs:
             updated['category'] = result.category_slug
         else:
@@ -100,17 +106,30 @@ class CategoryClassifier(ContentProcessor):
                 updated['category'] = 'other'
             elif self.undecided_policy == 'suggest':
                 # leave category unset, add suggestions (free-form allowed, do not filter to allowed_slugs)
-                suggestions = (result.suggestions or [])[: self.suggestions_count]
                 if suggestions:
                     updated['_category_suggestions'] = suggestions
 
-        # LLM-generated tags (stored separately, not merged into tags)
+        # If final category is 'other' and configured, propagate suggestions as tags
+        if self.propagate_suggested_categories_when_other and updated.get('category') == 'other' and suggestions:
+            # Suggestions are slugs; merge into tags list
+            existing_tags = list(updated.get('tags', []) or [])
+            # Normalize suggestions like tags to ensure consistency
+            norm_suggestions = self._normalize_tags(suggestions)
+            merged = list({*existing_tags, *norm_suggestions})
+            updated['tags'] = merged
+
+        # LLM-generated tags (store and optionally merge into tags)
         if self.suggest_tags:
             llm_tags = self._normalize_tags(getattr(result, 'tags', []) if hasattr(result, 'tags') else [])
             # Enforce caps
             maxc = max(0, int(self.tags_max))
             llm_tags = llm_tags[:maxc] if maxc >= 0 else llm_tags
             updated['llm_tags'] = llm_tags
+
+            if self.propagate_llm_suggested_tags and llm_tags:
+                existing_tags = list(updated.get('tags', []) or [])
+                merged = list({*existing_tags, *llm_tags})
+                updated['tags'] = merged
 
         # Attach diagnostics (not saved in frontmatter by default)
         updated['_category_confidence'] = result.confidence

@@ -71,6 +71,8 @@ suggestions_count: 3
 
 # If true, ensure the chosen category slug is present in the note's tags
 propagate_category_tag: true
+propagate_suggested_categories_when_other: true
+propagate_llm_suggested_tags: true
 
 # LLM Prompt Template and Suggestions
 # If provided, the classifier will load and render this template with placeholders.
@@ -78,7 +80,7 @@ llm_prompt_template_path: null  # e.g., config/prompts/default_classifier_prompt
 llm_prompt_version: v1          # Changing this invalidates cache keys
 llm_allow_freeform_suggestions: true   # Allow suggestions beyond configured slugs
 llm_suggest_tags: true                  # Ask LLM to return tags for the note
-llm_tags_max_count: 5                   # Cap on number of LLM tags
+llm_tags_max_count: 10                   # Cap on number of LLM tags
 llm_tags_min_count: 0                   # Minimum desired (informational)
 
 # Complete set of available categories for the classifier.
@@ -114,6 +116,9 @@ categories:
   - name: Health
     slug: health
     description: "Medical health, body measurements, exercise, workouts"
+  - name: Books
+    slug: books
+    description: "Titles of Books, authors, lists of books"
   - name: Other
     slug: other
     description: "Fallback category for low-confidence or uncategorized notes."
