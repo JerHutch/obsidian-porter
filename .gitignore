@@ -88,3 +88,15 @@ coverage.xml
 
 # LLM cache
 .cache/
+
+# C# / .NET
+bin/
+obj/
+*.user
+*.suo
+*.cache
+.vs/
+.vscode/
+*.DotSettings.user
+TestResults/
+*.nupkg
