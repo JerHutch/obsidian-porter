@@ -1,5 +1,6 @@
 namespace ObsidianPorter.Tests.Services;
 
+using System.IO;
 using Shouldly;
 using NSubstitute;
 using ObsidianPorter.Core.Interfaces;
@@ -64,5 +65,18 @@ CleanWhitespace: false
 
         config.ShouldNotBeNull();
         config.EnableEditorPipeline.ShouldBeTrue(); // Should be default config
+    }
+
+    [Test]
+    public void SaveToFile_WhenWriteFails_ThrowsException()
+    {
+        var config = new Core.Models.ImportConfig();
+        var fs = Substitute.For<IFileSystemService>();
+        fs.When(x => x.WriteAllText(Arg.Any<string>(), Arg.Any<string>()))
+          .Do(x => throw new IOException("Disk full"));
+
+        var manager = new ConfigManager(fs);
+
+        Should.Throw<IOException>(() => manager.SaveToFile("test.yaml", config));
     }
 }
