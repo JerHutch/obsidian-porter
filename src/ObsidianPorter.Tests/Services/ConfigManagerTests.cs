@@ -39,4 +39,30 @@ CleanWhitespace: false
         config.EnableAutoTagging.ShouldBeTrue();
         config.CleanWhitespace.ShouldBeFalse();
     }
+
+    [Test]
+    public void SaveToFile_WritesYamlConfiguration()
+    {
+        var config = new Core.Models.ImportConfig { EnableEditorPipeline = false };
+        var fs = Substitute.For<IFileSystemService>();
+
+        var manager = new ConfigManager(fs);
+        manager.SaveToFile("test.yaml", config);
+
+        fs.Received(1).WriteAllText("test.yaml", Arg.Is<string>(s => s.Contains("EnableEditorPipeline: false")));
+    }
+
+    [Test]
+    public void LoadFromFile_WithInvalidYaml_ReturnsDefaultConfigAndWarnsUser()
+    {
+        var fs = Substitute.For<IFileSystemService>();
+        fs.FileExists("bad.yaml").Returns(true);
+        fs.ReadAllText("bad.yaml").Returns("invalid: yaml: syntax:");
+
+        var manager = new ConfigManager(fs);
+        var config = manager.LoadFromFile("bad.yaml");
+
+        config.ShouldNotBeNull();
+        config.EnableEditorPipeline.ShouldBeTrue(); // Should be default config
+    }
 }

@@ -28,19 +28,28 @@ public class ConfigManager(IFileSystemService fileSystem)
 
             return deserializer.Deserialize<ImportConfig>(yaml) ?? new ImportConfig();
         }
-        catch
+        catch (Exception ex)
         {
+            Console.WriteLine($"Warning: Could not load config from {configPath}: {ex.Message}. Using default configuration.");
             return new ImportConfig();
         }
     }
 
     public void SaveToFile(string configPath, ImportConfig config)
     {
-        var serializer = new SerializerBuilder()
-            .WithNamingConvention(PascalCaseNamingConvention.Instance)
-            .Build();
+        try
+        {
+            var serializer = new SerializerBuilder()
+                .WithNamingConvention(PascalCaseNamingConvention.Instance)
+                .Build();
 
-        var yaml = serializer.Serialize(config);
-        _fileSystem.WriteAllText(configPath, yaml);
+            var yaml = serializer.Serialize(config);
+            _fileSystem.WriteAllText(configPath, yaml);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Warning: Could not save config to {configPath}: {ex.Message}");
+            throw; // Re-throw so caller knows save failed
+        }
     }
 }
