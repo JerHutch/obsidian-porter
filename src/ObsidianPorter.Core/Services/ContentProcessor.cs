@@ -6,26 +6,25 @@ using ObsidianPorter.Core.Models;
 /// <summary>
 /// Processes SimpleNote .txt files.
 /// </summary>
-public class ContentProcessor(IFileSystemService fileSystem, string notesDirectory)
+public class ContentProcessor(IFileSystemService fileSystem, IConfigManager configManager) : IContentProcessorService
 {
-    private readonly IFileSystemService _fileSystem = fileSystem;
-    private readonly string _notesDirectory = notesDirectory;
+    private readonly string _notesDirectory = configManager.GetNotesDirectory();
 
     public List<ProcessedNote> ProcessAllNotes()
     {
-        if (!_fileSystem.DirectoryExists(_notesDirectory))
+        if (!fileSystem.DirectoryExists(_notesDirectory))
         {
             return new List<ProcessedNote>();
         }
 
-        var txtFiles = _fileSystem.GetFiles(_notesDirectory, "*.txt");
+        var txtFiles = fileSystem.GetFiles(_notesDirectory, "*.txt");
         var notes = new List<ProcessedNote>();
 
         foreach (var filePath in txtFiles)
         {
             try
             {
-                var content = _fileSystem.ReadAllText(filePath);
+                var content = fileSystem.ReadAllText(filePath);
                 var title = ExtractTitle(content);
                 var filename = Path.GetFileName(filePath);
 

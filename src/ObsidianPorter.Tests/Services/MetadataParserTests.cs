@@ -30,7 +30,10 @@ public class MetadataParserTests
         fs.FileExists("notes.json").Returns(true);
         fs.ReadAllText("notes.json").Returns(json);
 
-        var parser = new MetadataParser(fs, "notes.json");
+        var configManager = Substitute.For<IConfigManager>();
+        configManager.GetJsonPath().Returns("notes.json");
+
+        var parser = new MetadataParser(fs, configManager);
         var result = parser.Parse();
 
         result.ShouldContainKey("My Test Note.txt");
@@ -48,7 +51,10 @@ public class MetadataParserTests
         var fs = Substitute.For<IFileSystemService>();
         fs.FileExists("notes.json").Returns(false);
 
-        var parser = new MetadataParser(fs, "notes.json");
+        var configManager = Substitute.For<IConfigManager>();
+        configManager.GetJsonPath().Returns("notes.json");
+
+        var parser = new MetadataParser(fs, configManager);
         var result = parser.Parse();
 
         result.ShouldBeEmpty();
@@ -58,7 +64,10 @@ public class MetadataParserTests
     public void GenerateFilename_SanitizesTitle()
     {
         var fs = Substitute.For<IFileSystemService>();
-        var parser = new MetadataParser(fs, "notes.json");
+        var configManager = Substitute.For<IConfigManager>();
+        configManager.GetJsonPath().Returns("notes.json");
+
+        var parser = new MetadataParser(fs, configManager);
 
         var filename = parser.GenerateFilename("Test: Note / With \\ Bad * Chars?");
 

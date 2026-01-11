@@ -23,7 +23,8 @@
       "Bash(tree:*)",
       "Bash(cat:*)",
       "Bash(git commit:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(dotnet run:*)"
     ],
     "deny": [],
     "ask": []

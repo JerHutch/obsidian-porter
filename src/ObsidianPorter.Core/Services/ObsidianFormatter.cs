@@ -8,10 +8,10 @@ using ObsidianPorter.Core.Models;
 /// <summary>
 /// Formats notes as Obsidian-compatible markdown with YAML frontmatter.
 /// </summary>
-public partial class ObsidianFormatter(IFileSystemService fileSystem, string outputDirectory)
+public partial class ObsidianFormatter(IFileSystemService fileSystem, IConfigManager configManager) : IObsidianFormatter
 {
     private readonly IFileSystemService _fileSystem = fileSystem;
-    private readonly string _outputDirectory = outputDirectory;
+    private readonly string _outputDirectory = configManager.GetOutputDirectory();
 
     /// <summary>
     /// Formats a note with YAML frontmatter and saves it to the output directory.

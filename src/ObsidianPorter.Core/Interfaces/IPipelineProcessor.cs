@@ -5,7 +5,7 @@ using ObsidianPorter.Core.Models;
 /// <summary>
 /// Interface for content processing pipeline components.
 /// </summary>
-public interface IContentProcessor
+public interface IPipelineProcessor
 {
     string Name { get; }
 

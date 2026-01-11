@@ -8,10 +8,10 @@ using ObsidianPorter.Core.Models;
 /// <summary>
 /// Parses metadata from SimpleNote JSON export.
 /// </summary>
-public partial class MetadataParser(IFileSystemService fileSystem, string jsonPath)
+public partial class MetadataParser(IFileSystemService fileSystem, IConfigManager configManager) : IMetadataParser
 {
     private readonly IFileSystemService _fileSystem = fileSystem;
-    private readonly string _jsonPath = jsonPath;
+    private readonly string _jsonPath = configManager.GetJsonPath();
 
     public Dictionary<string, NoteMetadata> Parse()
     {

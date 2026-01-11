@@ -8,7 +8,7 @@ using ObsidianPorter.Core.Services;
 
 public class EditorPipelineTests
 {
-    private class TestProcessor1 : IContentProcessor
+    private class TestProcessor1 : IPipelineProcessor
     {
         public string Name => "processor1";
 
@@ -24,7 +24,7 @@ public class EditorPipelineTests
         public bool ShouldProcess(NoteMetadata metadata, Dictionary<string, object> context) => true;
     }
 
-    private class TestProcessor2 : IContentProcessor
+    private class TestProcessor2 : IPipelineProcessor
     {
         public string Name => "processor2";
 
@@ -43,7 +43,7 @@ public class EditorPipelineTests
     [Test]
     public void ProcessNote_WithMultipleProcessors_RunsThemInSequence()
     {
-        var processors = new List<IContentProcessor> { new TestProcessor1(), new TestProcessor2() };
+        var processors = new List<IPipelineProcessor> { new TestProcessor1(), new TestProcessor2() };
         var pipeline = new EditorPipeline(processors);
         var metadata = CreateBasicMetadata();
 
@@ -59,7 +59,7 @@ public class EditorPipelineTests
     [Test]
     public void ProcessNote_WithNoProcessors_ReturnsUnchangedNote()
     {
-        var pipeline = new EditorPipeline(new List<IContentProcessor>());
+        var pipeline = new EditorPipeline(new List<IPipelineProcessor>());
         var metadata = CreateBasicMetadata();
 
         var (content, updatedMetadata, context) = pipeline.ProcessNote("Content", metadata, "test.txt");
@@ -71,12 +71,12 @@ public class EditorPipelineTests
     [Test]
     public void ProcessNote_WithConditionalProcessor_OnlyRunsWhenShouldProcess()
     {
-        var conditionalProcessor = Substitute.For<IContentProcessor>();
+        var conditionalProcessor = Substitute.For<IPipelineProcessor>();
         conditionalProcessor.Name.Returns("conditional");
         conditionalProcessor.ShouldProcess(Arg.Any<NoteMetadata>(), Arg.Any<Dictionary<string, object>>())
             .Returns(false);
 
-        var pipeline = new EditorPipeline(new List<IContentProcessor> { conditionalProcessor });
+        var pipeline = new EditorPipeline(new List<IPipelineProcessor> { conditionalProcessor });
         var metadata = CreateBasicMetadata();
 
         var (content, updatedMetadata, context) = pipeline.ProcessNote("Content", metadata, "test.txt");

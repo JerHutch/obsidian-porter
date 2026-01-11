@@ -1,6 +1,8 @@
 namespace ObsidianPorter.Tests.Integration;
 
 using Shouldly;
+using NSubstitute;
+using ObsidianPorter.Core.Interfaces;
 using ObsidianPorter.Core.Models;
 using ObsidianPorter.Core.Services;
 using System.IO;
@@ -38,13 +40,7 @@ public class FullPipelineIntegrationTests : IDisposable
         };
 
         // Act - Run import
-        var importer = new SimpleNoteImporter(
-            _fs,
-            config,
-            _notesDir,
-            Path.Combine(_sourceDir, "notes.json"),
-            _outputDir
-        );
+        var importer = CreateImporter(config);
 
         var result = importer.Import();
 
@@ -88,13 +84,7 @@ public class FullPipelineIntegrationTests : IDisposable
         };
 
         // Act
-        var importer = new SimpleNoteImporter(
-            _fs,
-            config,
-            _notesDir,
-            Path.Combine(_sourceDir, "notes.json"),
-            _outputDir
-        );
+        var importer = CreateImporter(config);
 
         var result = importer.Import();
 
@@ -135,13 +125,7 @@ public class FullPipelineIntegrationTests : IDisposable
         };
 
         // Act
-        var importer = new SimpleNoteImporter(
-            _fs,
-            config,
-            _notesDir,
-            Path.Combine(_sourceDir, "notes.json"),
-            _outputDir
-        );
+        var importer = CreateImporter(config);
 
         var result = importer.Import();
 
@@ -254,6 +238,23 @@ public class FullPipelineIntegrationTests : IDisposable
 
         File.WriteAllText(Path.Combine(_notesDir, "Cocktail Recipe.txt"), "Cocktail Recipe\nMix ingredients");
         File.WriteAllText(Path.Combine(_notesDir, "Food Recipe.txt"), "Food Recipe\nCook ingredients");
+    }
+
+    private SimpleNoteImporter CreateImporter(ImportConfig config)
+    {
+        // Setup ConfigManager
+        var configManager = Substitute.For<IConfigManager>();
+        configManager.GetConfig().Returns(config);
+        configManager.GetNotesDirectory().Returns(_notesDir);
+        configManager.GetJsonPath().Returns(Path.Combine(_sourceDir, "notes.json"));
+        configManager.GetOutputDirectory().Returns(_outputDir);
+
+        // Create real service instances with real file system
+        var metadataParser = new MetadataParser(_fs, configManager);
+        var contentProcessor = new ContentProcessor(_fs, configManager);
+        var formatter = new ObsidianFormatter(_fs, configManager);
+
+        return new SimpleNoteImporter(_fs, configManager, metadataParser, contentProcessor, formatter);
     }
 
     private void CleanTestDirectory()

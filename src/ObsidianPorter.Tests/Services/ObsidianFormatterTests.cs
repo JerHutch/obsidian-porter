@@ -12,7 +12,10 @@ public class ObsidianFormatterTests
     public void FormatAndSave_GeneratesYamlFrontmatter()
     {
         var fs = Substitute.For<IFileSystemService>();
-        var formatter = new ObsidianFormatter(fs, "/output");
+        var configManager = Substitute.For<IConfigManager>();
+        configManager.GetOutputDirectory().Returns("/output");
+
+        var formatter = new ObsidianFormatter(fs, configManager);
         var metadata = new NoteMetadata(
             Title: "Test Note",
             Created: new DateTime(2024, 1, 1, 12, 0, 0, DateTimeKind.Utc),
@@ -50,7 +53,10 @@ public class ObsidianFormatterTests
     public void FormatAndSave_SanitizesFilename()
     {
         var fs = Substitute.For<IFileSystemService>();
-        var formatter = new ObsidianFormatter(fs, "/output");
+        var configManager = Substitute.For<IConfigManager>();
+        configManager.GetOutputDirectory().Returns("/output");
+
+        var formatter = new ObsidianFormatter(fs, configManager);
         var metadata = new NoteMetadata(
             Title: "Test: Note / With \\ Bad * Chars?",
             Created: DateTime.UtcNow,
@@ -81,7 +87,10 @@ public class ObsidianFormatterTests
     {
         var fs = Substitute.For<IFileSystemService>();
         fs.DirectoryExists(Arg.Any<string>()).Returns(false);
-        var formatter = new ObsidianFormatter(fs, "/output");
+        var configManager = Substitute.For<IConfigManager>();
+        configManager.GetOutputDirectory().Returns("/output");
+
+        var formatter = new ObsidianFormatter(fs, configManager);
         var metadata = CreateBasicMetadata();
         var context = new Dictionary<string, object> { { "folder", "cocktails" } };
 
@@ -94,7 +103,10 @@ public class ObsidianFormatterTests
     public void FormatAndSave_WithNoFolder_UsesRootDirectory()
     {
         var fs = Substitute.For<IFileSystemService>();
-        var formatter = new ObsidianFormatter(fs, "/output");
+        var configManager = Substitute.For<IConfigManager>();
+        configManager.GetOutputDirectory().Returns("/output");
+
+        var formatter = new ObsidianFormatter(fs, configManager);
         var metadata = CreateBasicMetadata();
         var context = new Dictionary<string, object>();
 

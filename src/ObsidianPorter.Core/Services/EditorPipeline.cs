@@ -6,9 +6,9 @@ using ObsidianPorter.Core.Models;
 /// <summary>
 /// Orchestrates the execution of content processors in the editor pipeline.
 /// </summary>
-public class EditorPipeline(IEnumerable<IContentProcessor> processors)
+public class EditorPipeline(IEnumerable<IPipelineProcessor> processors)
 {
-    private readonly List<IContentProcessor> _processors = processors.ToList();
+    private readonly List<IPipelineProcessor> _processors = processors.ToList();
 
     /// <summary>
     /// Processes a note through all registered processors.

@@ -1,6 +1,13 @@
 using System.CommandLine;
+using Microsoft.Extensions.DependencyInjection;
+using ObsidianPorter.Core;
+using ObsidianPorter.Core.Interfaces;
 using ObsidianPorter.Core.Models;
-using ObsidianPorter.Core.Services;
+
+// Build DI container at startup
+var services = new ServiceCollection();
+services.AddObsidianPorterServices();
+var serviceProvider = services.BuildServiceProvider();
 
 var rootCommand = new RootCommand("SimpleNote to Obsidian Importer - Convert SimpleNote exports to Obsidian-compatible markdown");
 
@@ -51,17 +58,24 @@ rootCommand.SetHandler((string notesDir, string jsonPath, string outputDir, stri
         Console.WriteLine("SimpleNote to Obsidian Importer");
         Console.WriteLine("================================\n");
 
+        // Create scope for this import operation
+        using var scope = serviceProvider.CreateScope();
+        var scopedServices = scope.ServiceProvider;
+
+        // Resolve services from DI
+        var configManager = scopedServices.GetRequiredService<IConfigManager>();
+        var importerFactory = scopedServices.GetRequiredService<ISimpleNoteImporterFactory>();
+
         // Load configuration
-        var fileSystem = new FileSystemService();
-        var config = LoadConfiguration(fileSystem, configPath, smart);
+        var config = LoadConfiguration(configManager, configPath, smart);
 
         Console.WriteLine($"Notes directory: {notesDir}");
         Console.WriteLine($"JSON metadata: {jsonPath}");
         Console.WriteLine($"Output directory: {outputDir}");
         Console.WriteLine($"Smart processing: {(config.EnableEditorPipeline ? "enabled" : "disabled")}\n");
 
-        // Create and run importer
-        var importer = new SimpleNoteImporter(fileSystem, config, notesDir, jsonPath, outputDir);
+        // Create importer via factory
+        var importer = importerFactory.Create(config, notesDir, jsonPath, outputDir);
 
         Console.WriteLine("Starting import...\n");
         var result = importer.Import();
@@ -90,14 +104,13 @@ rootCommand.SetHandler((string notesDir, string jsonPath, string outputDir, stri
 
 return await rootCommand.InvokeAsync(args);
 
-static ImportConfig LoadConfiguration(FileSystemService fileSystem, string? configPath, bool smart)
+static ImportConfig LoadConfiguration(IConfigManager configManager, string? configPath, bool smart)
 {
     ImportConfig config;
 
     if (!string.IsNullOrWhiteSpace(configPath))
     {
         // Load from file
-        var configManager = new ConfigManager(fileSystem);
         config = configManager.LoadFromFile(configPath);
         Console.WriteLine($"Configuration loaded from: {configPath}");
     }

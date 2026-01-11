@@ -8,9 +8,13 @@ using YamlDotNet.Serialization.NamingConventions;
 /// <summary>
 /// Manages loading and saving of configuration files.
 /// </summary>
-public class ConfigManager(IFileSystemService fileSystem)
+public class ConfigManager(IFileSystemService fileSystem) : IConfigManager
 {
     private readonly IFileSystemService _fileSystem = fileSystem;
+    private ImportConfig? _currentConfig;
+    private string? _notesDirectory;
+    private string? _jsonPath;
+    private string? _outputDirectory;
 
     public ImportConfig LoadFromFile(string configPath)
     {
@@ -52,4 +56,28 @@ public class ConfigManager(IFileSystemService fileSystem)
             throw; // Re-throw so caller knows save failed
         }
     }
+
+    public void SetCurrentConfig(
+        ImportConfig config,
+        string notesDirectory,
+        string jsonPath,
+        string outputDirectory)
+    {
+        _currentConfig = config;
+        _notesDirectory = notesDirectory;
+        _jsonPath = jsonPath;
+        _outputDirectory = outputDirectory;
+    }
+
+    public ImportConfig GetConfig()
+        => _currentConfig ?? throw new InvalidOperationException("Config not set. Call SetCurrentConfig first.");
+
+    public string GetNotesDirectory()
+        => _notesDirectory ?? throw new InvalidOperationException("Notes directory not set. Call SetCurrentConfig first.");
+
+    public string GetJsonPath()
+        => _jsonPath ?? throw new InvalidOperationException("JSON path not set. Call SetCurrentConfig first.");
+
+    public string GetOutputDirectory()
+        => _outputDirectory ?? throw new InvalidOperationException("Output directory not set. Call SetCurrentConfig first.");
 }

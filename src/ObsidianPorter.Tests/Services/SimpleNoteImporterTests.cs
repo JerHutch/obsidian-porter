@@ -19,7 +19,7 @@ public class SimpleNoteImporterTests
             EnableEditorPipeline = false  // Disable pipeline for simple test
         };
 
-        var importer = new SimpleNoteImporter(fs, config, "/notes", "/notes/source/notes.json", "/output");
+        var importer = CreateImporter(fs, config);
         var result = importer.Import();
 
         result.TotalNotes.ShouldBe(2);
@@ -47,7 +47,7 @@ public class SimpleNoteImporterTests
             EnableFolderOrganization = true
         };
 
-        var importer = new SimpleNoteImporter(fs, config, "/notes", "/notes/source/notes.json", "/output");
+        var importer = CreateImporter(fs, config);
         var result = importer.Import();
 
         result.TotalNotes.ShouldBe(2);
@@ -71,7 +71,7 @@ public class SimpleNoteImporterTests
 
         var config = new ImportConfig { EnableEditorPipeline = false };
 
-        var importer = new SimpleNoteImporter(fs, config, "/notes", "/notes/source/notes.json", "/output");
+        var importer = CreateImporter(fs, config);
         var result = importer.Import();
 
         result.TotalNotes.ShouldBe(1);
@@ -82,6 +82,23 @@ public class SimpleNoteImporterTests
             Arg.Any<string>(),
             Arg.Is<string>(content => content.Contains("source: \"simplenote\""))
         );
+    }
+
+    private static SimpleNoteImporter CreateImporter(IFileSystemService fs, ImportConfig config)
+    {
+        // Setup ConfigManager
+        var configManager = Substitute.For<IConfigManager>();
+        configManager.GetConfig().Returns(config);
+        configManager.GetNotesDirectory().Returns("/notes");
+        configManager.GetJsonPath().Returns("/notes/source/notes.json");
+        configManager.GetOutputDirectory().Returns("/output");
+
+        // Create real service instances with mocked dependencies
+        var metadataParser = new MetadataParser(fs, configManager);
+        var contentProcessor = new ContentProcessor(fs, configManager);
+        var formatter = new ObsidianFormatter(fs, configManager);
+
+        return new SimpleNoteImporter(fs, configManager, metadataParser, contentProcessor, formatter);
     }
 
     private static void SetupFileSystem(IFileSystemService fs)

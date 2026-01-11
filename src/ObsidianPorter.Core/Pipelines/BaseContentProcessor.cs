@@ -6,7 +6,7 @@ using ObsidianPorter.Core.Models;
 /// <summary>
 /// Base class for content processors in the editor pipeline.
 /// </summary>
-public abstract class BaseContentProcessor : IContentProcessor
+public abstract class BaseContentProcessor : IPipelineProcessor
 {
     public abstract string Name { get; }
 

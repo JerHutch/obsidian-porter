@@ -16,7 +16,10 @@ public class ContentProcessorTests
         fs.ReadAllText("/notes/note1.txt").Returns("First Note\nContent here");
         fs.ReadAllText("/notes/note2.txt").Returns("Second Note\nMore content");
 
-        var processor = new ContentProcessor(fs, "/notes");
+        var configManager = Substitute.For<IConfigManager>();
+        configManager.GetNotesDirectory().Returns("/notes");
+
+        var processor = new ContentProcessor(fs, configManager);
         var notes = processor.ProcessAllNotes();
 
         notes.Count.ShouldBe(2);
@@ -31,7 +34,10 @@ public class ContentProcessorTests
         fs.DirectoryExists("/notes").Returns(true);
         fs.GetFiles("/notes", "*.txt").Returns(Array.Empty<string>());
 
-        var processor = new ContentProcessor(fs, "/notes");
+        var configManager = Substitute.For<IConfigManager>();
+        configManager.GetNotesDirectory().Returns("/notes");
+
+        var processor = new ContentProcessor(fs, configManager);
         var notes = processor.ProcessAllNotes();
 
         notes.ShouldBeEmpty();
@@ -41,7 +47,10 @@ public class ContentProcessorTests
     public void ExtractTitle_FromFirstLine_ReturnsTitle()
     {
         var fs = Substitute.For<IFileSystemService>();
-        var processor = new ContentProcessor(fs, "/notes");
+        var configManager = Substitute.For<IConfigManager>();
+        configManager.GetNotesDirectory().Returns("/notes");
+
+        var processor = new ContentProcessor(fs, configManager);
 
         var title = processor.ExtractTitle("My Note Title\nContent here\nMore content");
 

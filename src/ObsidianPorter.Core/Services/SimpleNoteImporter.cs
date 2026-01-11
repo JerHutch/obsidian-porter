@@ -9,16 +9,16 @@ using ObsidianPorter.Core.Pipelines;
 /// </summary>
 public class SimpleNoteImporter(
     IFileSystemService fileSystem,
-    ImportConfig config,
-    string notesDirectory,
-    string jsonPath,
-    string outputDirectory)
+    IConfigManager configManager,
+    IMetadataParser metadataParser,
+    IContentProcessorService contentProcessor,
+    IObsidianFormatter formatter) : ISimpleNoteImporter
 {
     private readonly IFileSystemService _fileSystem = fileSystem;
-    private readonly ImportConfig _config = config;
-    private readonly string _notesDirectory = notesDirectory;
-    private readonly string _jsonPath = jsonPath;
-    private readonly string _outputDirectory = outputDirectory;
+    private readonly IConfigManager _configManager = configManager;
+    private readonly IMetadataParser _metadataParser = metadataParser;
+    private readonly IContentProcessorService _contentProcessor = contentProcessor;
+    private readonly IObsidianFormatter _formatter = formatter;
 
     /// <summary>
     /// Executes the import process.
@@ -30,27 +30,27 @@ public class SimpleNoteImporter(
         var successfulNotes = 0;
         var failedNotes = 0;
 
+        // Get configuration
+        var config = _configManager.GetConfig();
+
         // Step 1: Parse metadata from JSON
-        var metadataParser = new MetadataParser(_fileSystem, _jsonPath);
-        var metadataMap = metadataParser.Parse();
+        var metadataMap = _metadataParser.Parse();
 
         // Step 2: Process all .txt files
-        var contentProcessor = new ContentProcessor(_fileSystem, _notesDirectory);
-        var processedNotes = contentProcessor.ProcessAllNotes();
+        var processedNotes = _contentProcessor.ProcessAllNotes();
 
         // Step 3: Merge metadata with content
         var notes = MergeMetadataWithContent(processedNotes, metadataMap);
 
         // Step 4: Setup editor pipeline (if enabled)
         EditorPipeline? editorPipeline = null;
-        if (_config.EnableEditorPipeline)
+        if (config.EnableEditorPipeline)
         {
-            var processors = BuildProcessors();
+            var processors = BuildProcessors(config);
             editorPipeline = new EditorPipeline(processors);
         }
 
-        // Step 5: Format and save each note
-        var formatter = new ObsidianFormatter(_fileSystem, _outputDirectory);
+        // Step 5: Format and save each note using injected formatter
 
         foreach (var note in notes)
         {
@@ -73,7 +73,7 @@ public class SimpleNoteImporter(
                 }
 
                 // Format and save
-                formatter.FormatAndSave(content, metadata, context);
+                _formatter.FormatAndSave(content, metadata, context);
 
                 successfulNotes++;
             }
@@ -110,33 +110,33 @@ public class SimpleNoteImporter(
         return result;
     }
 
-    private List<IContentProcessor> BuildProcessors()
+    private List<IPipelineProcessor> BuildProcessors(ImportConfig config)
     {
-        var processors = new List<IContentProcessor>();
+        var processors = new List<IPipelineProcessor>();
 
         // Tag Injector
-        if (_config.EnableAutoTagging)
+        if (config.EnableAutoTagging)
         {
             processors.Add(new TagInjector(
-                _config.CustomTagRules,
-                _config.PropagateCategoryTag
+                config.CustomTagRules,
+                config.PropagateCategoryTag
             ));
         }
 
         // Content Transformer
-        if (_config.EnableContentTransformation)
+        if (config.EnableContentTransformation)
         {
             processors.Add(new ContentTransformer(
-                _config.CleanWhitespace,
-                _config.StandardizeHeaders,
-                _config.FixListFormatting
+                config.CleanWhitespace,
+                config.StandardizeHeaders,
+                config.FixListFormatting
             ));
         }
 
         // Folder Organizer
-        if (_config.EnableFolderOrganization)
+        if (config.EnableFolderOrganization)
         {
-            processors.Add(new FolderOrganizer(_config.CustomFolderRules));
+            processors.Add(new FolderOrganizer(config.CustomFolderRules));
         }
 
         return processors;
